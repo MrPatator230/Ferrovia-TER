@@ -1,0 +1,47 @@
+.adminContainer {
+    margin: 0;
+    display: flex;
+    min-height: 100vh;
+}
+
+.adminNav {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100vh;
+    z-index: 1000;
+}
+
+.adminMain {
+    margin-left: 110px;
+    flex: 1;
+    padding: 2rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Mode tablette et mobile */
+@media (max-width: 1024px) {
+    .adminContainer {
+        flex-direction: column;
+    }
+
+    .adminNav {
+        position: relative;
+        height: auto;
+        width: 100%;
+    }
+
+    .adminMain {
+        margin-left: 0;
+        padding: 1rem;
+    }
+}
+
+/* Mode mobile strict */
+@media (max-width: 768px) {
+    .adminMain {
+        padding: 0.5rem;
+    }
+}
+

@@ -1,0 +1,296 @@
+/* NextDepartures - Responsive mobile dimensions */
+.card {
+  padding: 1rem;
+  font-size: 1rem;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0;
+  color: #0b2b1a;
+}
+
+.subtitle {
+  font-size: 0.875rem;
+  color: #666;
+  margin-top: 6px;
+}
+
+/* Ligne jaune fine sous l'en-tête */
+.headerDivider {
+  height: 3px;
+  background: linear-gradient(90deg, #f5d76a 0%, #f5d76a 100%);
+  margin-top: 10px;
+  border-radius: 2px;
+}
+
+.stationPills {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+/* Wrapper to allow horizontal scrolling of pills */
+.stationPillsInner {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.stationButton {
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.stationButtonActive {
+  border: none;
+  background: #0b7d48;
+  color: #fff;
+  font-weight: 700;
+}
+
+.stationButtonInactive {
+  border: 1px solid #dae8c9;
+  background: #f4f7ec;
+  color: #36521b;
+  font-weight: 600;
+}
+
+.moreButton {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.departuresList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.departureItem {
+  display: grid;
+  grid-template-columns: 72px 1fr 56px 36px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 6px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.departureTime {
+  width: 72px;
+  min-width: 56px;
+  font-weight: 700;
+  font-size: 1rem;
+  color: #0b2b1a;
+}
+
+.departureDetails {
+  flex: 1;
+  min-width: 0;
+}
+
+.departureDestinationRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.departureDestination {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #172b1f;
+}
+
+.vehicleInfo {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vehicleText {
+  color: #666;
+}
+
+.platformColumn {
+  width: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.platform {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #172b1f;
+}
+
+.platformAction {
+  background: #f4f7ec;
+  border: 1px solid #dae8c9;
+  padding: 6px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.chevron {
+  width: 36px;
+  text-align: center;
+}
+
+/* Info ribbon */
+.infoRibbon {
+  display: flex;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.infoTriangle {
+  width: 0;
+  height: 0;
+  border-top: 12px solid transparent;
+  border-bottom: 12px solid transparent;
+  border-right: 12px solid #eaf6fb;
+  margin-right: -1px;
+}
+
+.infoContent {
+  flex: 1;
+  background: #eaf6fb;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 4px;
+}
+
+.infoIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #dff4fb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.infoText {
+  color: #0b84d6;
+  font-weight: 700;
+}
+
+.dateDivider {
+  margin-top: 12px;
+  margin-bottom: 6px;
+}
+
+.dateText {
+  color: #666;
+  font-weight: 700;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.footerButton {
+  border: none;
+  background: transparent;
+  color: #0b7d48;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* En-tête de colonnes (Départ / Destination / Voie) */
+.tableHeader {
+  display: grid;
+  grid-template-columns: 72px 1fr 56px 36px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 6px;
+  font-size: 0.875rem;
+  color: #666;
+  margin-top: 8px;
+  margin-bottom: 4px;
+  border-bottom: 2px solid #f5d76a; /* ligne jaune sous les noms de colonnes */
+}
+
+.colDeparture {
+  width: 72px;
+  min-width: 56px;
+  font-weight: 700;
+  color: #172b1f;
+}
+
+.colDestination {
+  flex: 1;
+  font-weight: 700;
+  color: #172b1f;
+}
+
+.colPlatform {
+  width: 56px;
+  text-align: center;
+  font-weight: 700;
+  color: #172b1f;
+}
+
+/* Espaceur pour aligner le header avec la colonne du chevron */
+.colSpacer {
+  width: 36px; /* identique à .chevron */
+  min-width: 36px;
+}
+
+/* Responsive tweaks */
+@media (max-width: 480px) {
+  .tableHeader {
+    grid-template-columns: 60px 1fr 48px 36px;
+  }
+  .departureItem { grid-template-columns: 60px 1fr 48px 36px; }
+  .departureTime { width: auto; }
+  .platformColumn { width: auto; }
+}
+
+/* Tablet adjustments */
+@media (min-width: 481px) and (max-width: 900px) {
+  .card {
+    padding: 0.875rem;
+  }
+}
+
+/* Desktop adjustments */
+@media (min-width: 901px) {
+  .card {
+    padding: 1rem;
+  }
+}

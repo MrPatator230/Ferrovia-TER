@@ -1,0 +1,29 @@
+{
+  "name": "my-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test:db": "node src/lib/test-db.js"
+  },
+  "dependencies": {
+    "@ducanh2912/next-pwa": "^10.2.9",
+    "@sncf/bootstrap-sncf.communication": "^4.3.1-r5",
+    "@sncf/bootstrap-sncf.metier": "^4.3.1-r5",
+    "bcryptjs": "^3.0.3",
+    "mysql2": "^3.15.3",
+    "next": "16.0.4",
+    "next-auth": "^4.24.13",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "wcs-core": "^7.3.0",
+    "wcs-react": "^7.3.0"
+  },
+  "devDependencies": {
+    "eslint": "^9",
+    "eslint-config-next": "16.0.4"
+  }
+}

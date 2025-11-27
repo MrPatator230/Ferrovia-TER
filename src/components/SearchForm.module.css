@@ -1,0 +1,161 @@
+/* Adaptation responsive du contenu du widget Rechercher un train
+   - Utilise les container queries pour ajuster la taille de la police et le padding
+   - Les tailles intérieures utilisent des unités relatives (em) afin d'hériter de la taille de la police du conteneur
+*/
+
+.searchCard {
+  width: 100%;
+  padding: 20px;
+  background-color: white;
+  border-radius: 10px;
+  box-sizing: border-box;
+  /* container-type: inline-size;  <-- retiré : use viewport-based media queries as fallback */
+  font-size: 1rem; /* base = 16px (par défaut)
+     les éléments enfants utilisent des em pour s'adapter */
+  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  position: relative;
+}
+
+/* Size-dependent variants via data attribute set by ResizeObserver */
+.searchCard[data-container-size="small"] {
+  font-size: 0.875rem; /* 14px */
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.searchCard[data-container-size="medium"] {
+  font-size: 1rem; /* 16px */
+  padding: 18px;
+}
+
+.searchCard[data-container-size="large"] {
+  font-size: 1.125rem; /* 18px */
+  padding: 24px;
+}
+
+/* Small containers (téléphone étroit) */
+@media (max-width: 480px) {
+  .searchCard {
+    font-size: 0.875rem; /* 14px */
+    padding: 12px;
+    border-radius: 12px;
+  }
+}
+
+/* Medium containers (tablette) */
+@media (min-width: 481px) and (max-width: 899px) {
+  .searchCard {
+    font-size: 1rem; /* 16px */
+    padding: 18px;
+  }
+}
+
+/* Large containers (desktop large) */
+@media (min-width: 900px) {
+  .searchCard {
+    font-size: 1.125rem; /* 18px */
+    padding: 24px;
+  }
+}
+
+/* Layout helpers internes */
+.containerColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0.875rem 1rem; /* 14px 16px using rem/em */
+  border-radius: 8px;
+  background: #f4f5f7;
+}
+
+.field input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 1em; /* relatif à .searchCard font-size */
+  flex: 1;
+}
+
+.smallText { font-size: 0.8125em; color: #666; }
+.bold { font-weight: 700; font-size: 1em; }
+
+.rowSplit {
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f4f5f7;
+}
+
+.rowSplit .left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0.75rem 0.875rem; /* 12px 14px */
+  flex: 1;
+}
+
+.rowSplit .divider {
+  width: 1px;
+  background: #e0e0e0;
+  height: 48px;
+}
+
+.rowSplit .timeCell {
+  padding: 0.75rem 1rem; /* 12px 16px */
+  font-weight: 700;
+}
+
+.flexBetween { display:flex; justify-content:space-between; align-items:center; }
+
+/* petites utilitaires */
+.noBorder { border: none; }
+
+/* Assure que les boutons héritent la taille relative */
+.btnLink { border: none; background: transparent; color: #0b7d48; font-size: 0.875em; cursor: pointer; }
+
+/* tweak: ensure icons don't force layout */
+.iconFix { display:inline-flex; align-items:center; justify-content:center; }
+
+/* New: swap button positioning and visibility */
+.swapButton { position: absolute; top: 12px; right: 12px; }
+
+/* Actions area */
+.actions { display: flex; justify-content: flex-end; margin-top: 4px; }
+.searchBtn {
+  background: #0b7d48;
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Mobile specific overrides */
+@media (max-width: 1000px) {
+  .searchCard { padding: 14px; }
+  .swapButton { display: none; }
+  .field { padding: 10px; }
+  .actions { justify-content: center; }
+  .searchBtn { width: 100%; padding: 14px 16px; border-radius: 10px; }
+}
+
+/* Ensure large clickable area on small screens */
+@media (max-width: 480px) {
+  .field { padding: 10px; }
+  .searchBtn { padding: 14px 16px; font-size: 1rem; }
+}
+
+/* tweak: make rowSplit elements wrap on small widths */
+@media (max-width: 480px) {
+  .rowSplit { flex-direction: column; align-items: stretch; gap: 8px; }
+  .rowSplit .divider { display: none; height: auto; }
+  .rowSplit .timeCell { text-align: right; }
+}

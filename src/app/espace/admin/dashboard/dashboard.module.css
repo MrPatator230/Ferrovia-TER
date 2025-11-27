@@ -1,0 +1,41 @@
+.dashboardContainer {
+    width: 100%;
+}
+
+.dashboardCard {
+    margin-bottom: 2rem;
+}
+
+.statsGrid {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+
+.statsCard {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Mode tablette */
+@media (max-width: 1024px) {
+    .statsGrid {
+        flex-direction: column;
+    }
+
+    .statsCard {
+        width: 100%;
+    }
+}
+
+/* Mode mobile */
+@media (max-width: 768px) {
+    .dashboardCard {
+        margin-bottom: 1rem;
+    }
+
+    .statsGrid {
+        gap: 0.75rem;
+    }
+}
+

@@ -1,0 +1,89 @@
+/* SubscriptionCard - Responsive mobile dimensions */
+.subscriptionCard {
+  box-shadow: 0 6px 12px rgba(0,0,0,0.06);
+  overflow: hidden;
+  margin-top: clamp(12px, 3vw, 16px);
+}
+
+.content {
+  padding: clamp(10px, 2.5vw, 12px);
+  max-height: clamp(120px, 25vh, 160px);
+  overflow-y: auto;
+}
+
+.title {
+  margin: 0 0 clamp(6px, 1.5vw, 8px) 0;
+  font-size: clamp(1rem, 2.2vw, 1.125rem);
+  font-weight: 700;
+}
+
+.description {
+  margin: 0;
+  color: #666;
+  line-height: 1.4;
+  font-size: clamp(0.8125rem, 1.6vw, 0.9375rem);
+}
+
+.footer {
+  padding: clamp(10px, 2.5vw, 12px);
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ctaButton {
+  background: #0b7d48;
+  color: #fff;
+  border: none;
+  padding: clamp(8px, 2vw, 10px) clamp(12px, 3vw, 14px);
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: clamp(0.8125rem, 1.6vw, 0.875rem);
+}
+
+/* Mobile specific adjustments */
+@media (max-width: 480px) {
+  .subscriptionCard {
+    margin-top: 12px;
+  }
+
+  .content {
+    padding: 10px;
+  }
+
+  .footer {
+    padding: 10px;
+  }
+
+  .ctaButton {
+    width: 100%;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 481px) and (max-width: 900px) {
+  .content {
+    padding: 11px;
+  }
+
+  .footer {
+    padding: 11px;
+  }
+}
+
+/* Desktop adjustments */
+@media (min-width: 901px) {
+  .subscriptionCard {
+    margin-top: 16px;
+  }
+
+  .content {
+    padding: 12px;
+  }
+
+  .footer {
+    padding: 12px;
+  }
+}
+

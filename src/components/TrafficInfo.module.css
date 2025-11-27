@@ -1,0 +1,164 @@
+/* TrafficInfo - Responsive mobile dimensions */
+.trafficCard {
+  width: 100%;
+  padding: 0;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  overflow: hidden;
+  font-size: clamp(0.8125rem, 1.5vw, 0.9375rem);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: clamp(10px, 2.5vw, 14px) clamp(12px, 3vw, 16px);
+  background: #f4f5f7;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+
+.headerTitle {
+  font-size: clamp(0.8125rem, 1.8vw, 0.875rem);
+  color: #333;
+  font-weight: 600;
+}
+
+.iconCircle {
+  width: clamp(28px, 6vw, 32px);
+  height: clamp(28px, 6vw, 32px);
+  border-radius: 50%;
+  background: #0b84d6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.content {
+  padding: clamp(10px, 2.5vw, 14px) clamp(12px, 3vw, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 2vw, 12px);
+}
+
+.sectionTitle {
+  font-size: clamp(0.75rem, 1.6vw, 0.8125rem);
+  font-weight: 600;
+  color: #666;
+}
+
+.infoBox {
+  background: #fafafa;
+  padding: clamp(8px, 2vw, 10px) clamp(10px, 2.5vw, 12px);
+  border-radius: 6px;
+  border: 1px solid #eee;
+}
+
+.infoTitle {
+  font-weight: 800;
+  font-size: clamp(0.8125rem, 1.8vw, 0.9375rem);
+  margin-bottom: clamp(4px, 1.2vw, 6px);
+  text-transform: uppercase;
+  color: #222;
+}
+
+.infoText {
+  font-size: clamp(0.75rem, 1.6vw, 0.8125rem);
+  color: #666;
+  line-height: 1.4;
+}
+
+.separator {
+  position: relative;
+}
+
+.separatorLine {
+  height: 1px;
+  background: #e6e6e6;
+}
+
+.separatorButton {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  top: 0;
+}
+
+.detailButton {
+  background: #ececec;
+  border: 1px solid #d0d0d0;
+  padding: clamp(5px, 1.2vw, 6px) clamp(8px, 2vw, 10px);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 1.5vw, 8px);
+  font-size: clamp(0.75rem, 1.6vw, 0.8125rem);
+  cursor: pointer;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(6px, 1.5vw, 8px);
+  padding-top: clamp(4px, 1.2vw, 6px);
+}
+
+.paginationButton {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: clamp(4px, 1.2vw, 6px);
+}
+
+.pageIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(28px, 6vw, 32px);
+  height: clamp(28px, 6vw, 32px);
+  border-radius: 50%;
+}
+
+.pageIndicatorActive {
+  background: #f4f5f7;
+  border: 1px solid #e0e0e0;
+  color: #222;
+  font-weight: 700;
+}
+
+.pageIndicatorInactive {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #888;
+  font-weight: 500;
+}
+
+/* Mobile specific adjustments */
+@media (max-width: 480px) {
+  .trafficCard {
+    font-size: 0.8125rem;
+  }
+
+  .header {
+    padding: 10px 12px;
+  }
+
+  .content {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+}
+
+/* Tablet adjustments */
+@media (min-width: 481px) and (max-width: 900px) {
+  .trafficCard {
+    font-size: 0.875rem;
+  }
+}
+
+/* Desktop adjustments */
+@media (min-width: 901px) {
+  .trafficCard {
+    font-size: 0.9375rem;
+  }
+}
+

@@ -1,0 +1,199 @@
+.userMenuContainer {
+  position: relative;
+  display: inline-block;
+  z-index: 3000; /* bump container */
+}
+
+.buttonWrapper {
+  position: relative;
+  z-index: 3001; /* bouton au dessus */
+  pointer-events: auto;
+  display: inline-block;
+}
+
+.activeButton {
+  background-color: rgba(11, 125, 72, 0.15) !important;
+  position: relative;
+  z-index: 3002; /* bouton le plus élevé */
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% + 0.75rem);
+  right: 0;
+  width: 320px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.1);
+  z-index: 2000; /* en dessous du bouton mais au dessus de la page */
+  animation: slideDown 0.2s ease-out;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdownHeader {
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #0b7d48 0%, #065a32 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.userAvatar {
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  flex-shrink: 0;
+}
+
+.userAvatar i {
+  color: white;
+}
+
+.userInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.userName {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+  color: white;
+}
+
+.userEmail {
+  font-size: 0.875rem;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.9);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdownDivider {
+  height: 1px;
+  background: #e5e7eb;
+}
+
+.dropdownBody {
+  padding: 0.5rem;
+}
+
+.menuItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.938rem;
+  font-weight: 500;
+  color: #374151;
+  text-align: left;
+}
+
+.menuItem:hover {
+  background-color: #f3f4f6;
+  color: #0b7d48;
+}
+
+.menuItem:active {
+  transform: scale(0.98);
+}
+
+.menuItem i {
+  font-size: 1.25rem;
+  color: #6b7280;
+  transition: color 0.2s;
+}
+
+.menuItem:hover i {
+  color: #0b7d48;
+}
+
+.menuItem:last-child {
+  color: #dc2626;
+}
+
+.menuItem:last-child:hover {
+  background-color: #fef2f2;
+  color: #dc2626;
+}
+
+.menuItem:last-child i {
+  color: #dc2626;
+}
+
+.menuItem:last-child:hover i {
+  color: #dc2626;
+}
+
+.floatingButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: white; /* visible background like the header buttons */
+  border: 2px solid rgba(0,0,0,0.06);
+  border-radius: 9999px;
+  padding: 0;
+  margin: 0;
+  color: #0b7d48; /* icon color */
+  width: 40px;
+  height: 40px;
+  box-shadow: 0 6px 14px rgba(2,6,23,0.12);
+  pointer-events: auto;
+}
+
+/* ensure the icon inside is visible */
+.floatingButton wcs-mat-icon,
+.floatingButton i {
+  color: #0b7d48;
+  font-size: 20px;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .dropdown {
+    width: 280px;
+    right: -1rem;
+  }
+
+  .dropdownHeader {
+    padding: 1.25rem;
+  }
+
+  .userName {
+    font-size: 1rem;
+  }
+
+  .userEmail {
+    font-size: 0.813rem;
+  }
+
+  .menuItem {
+    padding: 0.75rem 0.875rem;
+    font-size: 0.875rem;
+  }
+}
