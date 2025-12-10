@@ -1,0 +1,97 @@
+/* Styles globaux pour les modales WCS */
+
+/* Force l'affichage des modales WCS */
+wcs-modal {
+  z-index: 9999 !important;
+}
+
+wcs-modal[show] {
+  display: block !important;
+}
+
+/* Contenu de la modale */
+wcs-modal [slot="content"],
+wcs-modal div[slot="content"] {
+  background: white !important;
+  padding: 20px !important;
+  min-height: 200px !important;
+  color: #333 !important;
+  display: block !important;
+  width: 100% !important;
+}
+
+/* Formulaires dans les modales */
+wcs-modal form {
+  background: white !important;
+  width: 100% !important;
+  display: block !important;
+}
+
+/* Champs de formulaire WCS dans les modales */
+wcs-modal wcs-form-field {
+  margin-bottom: 16px !important;
+  display: block !important;
+  width: 100% !important;
+}
+
+wcs-modal wcs-label {
+  display: block !important;
+  margin-bottom: 8px !important;
+  font-weight: 600 !important;
+  color: #333 !important;
+  font-size: 14px !important;
+}
+
+/* Inputs dans les modales */
+wcs-modal input,
+wcs-modal select,
+wcs-modal textarea {
+  width: 100% !important;
+  padding: 8px 12px !important;
+  border: 1px solid #ccc !important;
+  border-radius: 4px !important;
+  font-size: 14px !important;
+  box-sizing: border-box !important;
+  background: white !important;
+  color: #333 !important;
+  font-family: inherit !important;
+}
+
+wcs-modal input:focus,
+wcs-modal select:focus,
+wcs-modal textarea:focus {
+  outline: none !important;
+  border-color: #0b7d48 !important;
+  box-shadow: 0 0 0 2px rgba(11, 125, 72, 0.2) !important;
+}
+
+/* Boutons WCS dans les modales */
+wcs-modal wcs-button {
+  margin-right: 8px !important;
+}
+
+/* Messages d'erreur */
+wcs-modal .errorMessage {
+  color: #d32f2f !important;
+  font-size: 12px !important;
+  margin-top: 4px !important;
+}
+
+/* Spinners de chargement */
+wcs-modal wcs-spinner {
+  margin-right: 8px !important;
+}
+
+/* Fix pour les Shadow DOM des composants WCS */
+wcs-modal::part(dialog) {
+  background: white !important;
+}
+
+wcs-modal::part(content) {
+  background: white !important;
+  padding: 20px !important;
+}
+
+wcs-modal::part(body) {
+  background: white !important;
+}

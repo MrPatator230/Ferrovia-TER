@@ -1,0 +1,11 @@
+-- Migration: création de la table parametres
+
+CREATE TABLE IF NOT EXISTS parametres (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  cle VARCHAR(100) NOT NULL DEFAULT 'global',
+  valeur_json JSON NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_cle (cle)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

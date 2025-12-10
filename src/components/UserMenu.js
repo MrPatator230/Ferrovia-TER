@@ -47,7 +47,26 @@ export default function UserMenu() {
 
   const handleProfileClick = () => {
     setIsOpen(false);
-    router.push('/profil');
+    try {
+      // Priorité : rôle côté client stocké dans l'objet user retourné par useAuth
+      const roleFromUser = user?.role;
+      // Fallback : localStorage (clé 'role') si présent
+      const roleFromStorage = typeof window !== 'undefined' ? localStorage.getItem('role') : null;
+      const role = roleFromUser || roleFromStorage;
+
+      if (!role) {
+        // Pas de rôle connu -> rediriger vers la page de connexion
+        router.push('/se-connecter');
+        return;
+      }
+
+      const target = role === 'admin' ? '/espace/admin' : '/espace/client';
+      router.push(target);
+    } catch (err) {
+      // En cas d'erreur inattendue, retomber sur /profil
+      console.error('Erreur lors de la redirection vers l\'espace :', err);
+      router.push('/profil');
+    }
   };
 
   const handleLogout = async () => {

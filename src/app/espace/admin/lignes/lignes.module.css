@@ -1,0 +1,103 @@
+/* minimal styles for lignes page (inspired by gares.module.css) */
+.container {
+  padding: 12px;
+  box-sizing: border-box;
+  /* Eviter le débordement horizontal et centrer le contenu */
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.wcsTableWrap {
+  background: white;
+  padding: 8px;
+  border-radius: 6px;
+  overflow-x: auto;
+  max-width: 100%;
+}
+.cardsWrap {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 12px;
+}
+.card {
+  border: 1px solid #eee;
+  padding: 12px;
+  border-radius: 8px;
+  background: #fff;
+}
+.emptyState { padding: 24px; text-align: center; color: #666; }
+.formWrap { display: block; }
+.tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+.tabs button { padding: 8px 12px; border-radius: 6px; border: 1px solid #ddd; background: #f9f9f9; }
+.tabPanel { padding: 8px 0; }
+.stopRow { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+
+/* petites améliorations responsive */
+@media (max-width: 900px) {
+  .container { padding: 10px; max-width: 100%; }
+  .wcsTableWrap { padding: 6px; }
+  .cardsWrap { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+}
+
+/* --- Ajouts pour affichage mobile des filtres --- */
+.filterToggle {
+  display: none;
+  margin-bottom: 10px;
+}
+
+.filtersAside {
+  width: 260px;
+  padding: 12px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.overlay {
+  display: none;
+}
+
+.closeFilters {
+  display: none;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 700px) {
+  .filterToggle { display: block; }
+
+  .filtersAside {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 80%;
+    max-width: 320px;
+    transform: translateX(-110%);
+    transition: transform 240ms ease-in-out;
+    z-index: 1000;
+    background: #fafafa;
+    padding: 14px;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.15);
+    border-radius: 0 8px 8px 0;
+    overflow-y: auto;
+  }
+
+  .filtersAside.open { transform: translateX(0); }
+
+  .closeFilters {
+    display: inline-block;
+    background: transparent;
+    border: none;
+    color: #444;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 900;
+  }
+
+}
