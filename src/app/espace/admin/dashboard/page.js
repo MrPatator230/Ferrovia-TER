@@ -14,6 +14,35 @@ export default function AdminDashboard(){
   const [wcs, setWcs] = useState(null);
   const [missing, setMissing] = useState([]);
   const [error, setError] = useState(null);
+  const [adminUid, setAdminUid] = useState(null);
+  const [loadingUid, setLoadingUid] = useState(false);
+  const [uidMessage, setUidMessage] = useState('');
+
+  // Fonction utilitaire : copie dans le presse-papiers avec fallback
+  const copyToClipboard = async (text) => {
+    if (!text) return false;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch (e) {
+      // ignore and fallback
+    }
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch (e) {
+      return false;
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -29,6 +58,28 @@ export default function AdminDashboard(){
         console.error('Impossible de charger wcs-core:', err);
         if (mounted) setError('La librairie `wcs-core` est introuvable. Installez-la et configurez la clé WCS.');
       });
+
+    // Récupérer l'admin_uid au montage
+    (async () => {
+      try {
+        setLoadingUid(true);
+        const res = await fetch('/api/admin/uid');
+        if (res.status === 200) {
+          const data = await res.json();
+          setAdminUid(data.user?.admin_uid || null);
+        } else if (res.status === 401) {
+          // non authentifié -> ne pas afficher
+          setAdminUid(null);
+        } else {
+          console.warn('Impossible de récupérer admin_uid', res.status);
+        }
+      } catch (err) {
+        console.error('Erreur fetch admin/uid:', err);
+      } finally {
+        setLoadingUid(false);
+      }
+    })();
+
     return () => { mounted = false };
   }, []);
 
@@ -75,6 +126,57 @@ export default function AdminDashboard(){
 
   return (
     <div className={styles.dashboardContainer}>
+      <section className={styles.dashboardCard}>
+        <h2>Identifiant d'intégration (UID)</h2>
+        <p className="small-muted">Cet UID permet de lier cette instance avec l'application de gestion administrative.</p>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 8 }}>
+          <div className={styles.uidBox}>
+            {loadingUid ? 'Chargement...' : (adminUid || 'Aucun UID généré')}
+          </div>
+          <div>
+            <button
+              type="button"
+              onClick={async () => {
+                if (!adminUid) {
+                  // appeler POST pour générer
+                  try {
+                    setUidMessage('Génération en cours...');
+                    const res = await fetch('/api/admin/uid', { method: 'POST' });
+                    if (res.ok) {
+                      const data = await res.json();
+                      setAdminUid(data.admin_uid);
+                      setUidMessage('UID généré');
+                      // copier automatiquement
+                      try { const ok = await copyToClipboard(data.admin_uid); if (ok) setUidMessage('UID généré et copié'); }
+                      catch(e){ /* ignore */ }
+                    } else {
+                      const err = await res.json();
+                      setUidMessage(err?.error || 'Erreur génération');
+                    }
+                  } catch (err) {
+                    console.error(err);
+                    setUidMessage('Erreur lors de la génération');
+                  }
+                } else {
+                  try {
+                    const ok = await copyToClipboard(adminUid);
+                    setUidMessage(ok ? 'UID copié' : 'Impossible de copier');
+                  } catch (err) {
+                    console.error('Clipboard error', err);
+                    setUidMessage('Impossible de copier');
+                  }
+                }
+                setTimeout(() => setUidMessage(''), 3000);
+              }}
+              className={styles.btn}
+            >
+              {adminUid ? 'Copier l\'UID' : 'Générer et Copier l\'UID'}
+            </button>
+          </div>
+        </div>
+        {uidMessage && <p className="small-muted" style={{ marginTop: 8 }}>{uidMessage}</p>}
+      </section>
+
       <section className={styles.dashboardCard}>
         <h2>État du trafic (WCS SNCF)</h2>
         <p className="small-muted">Dernière mise à jour: {new Date().toLocaleString()}</p>

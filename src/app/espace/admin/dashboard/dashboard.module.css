@@ -38,4 +38,25 @@
         gap: 0.75rem;
     }
 }
+/* Styles pour le bouton utilisé sur le dashboard (classe générique .btn) */
+.btn {
+    background: #0055a5; /* bleu SNCF léger */
+    color: #fff;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+}
 
+.btn:hover {
+    background: #004080;
+}
+
+/* Apparence de la boite UID */
+.uidBox {
+    font-family: monospace;
+    background: #f5f5f5;
+    padding: 6px 10px;
+    border-radius: 6px;
+}

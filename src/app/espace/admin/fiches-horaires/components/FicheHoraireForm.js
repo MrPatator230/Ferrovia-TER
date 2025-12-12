@@ -14,6 +14,8 @@ export default function FicheHoraireForm({ fiche, onSuccess, onCancel }) {
   const [lignes, setLignes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
 
   useEffect(() => {
     if (fiche) {
@@ -91,6 +93,36 @@ export default function FicheHoraireForm({ fiche, onSuccess, onCancel }) {
       console.error(err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleFileChange = (e) => {
+    setSelectedFile(e.target.files && e.target.files[0] ? e.target.files[0] : null);
+  };
+
+  const handleUpload = async () => {
+    if (!fiche) return alert('Enregistrez la fiche avant d\'importer un fichier');
+    if (!selectedFile) return alert('Sélectionnez un fichier à importer');
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', selectedFile, selectedFile.name);
+      const res = await fetch(`/api/fiches-horaires/${fiche.id}/upload`, {
+        method: 'POST',
+        body: fd
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Import réussi');
+        onSuccess();
+      } else {
+        alert(data.message || 'Erreur lors de l\'import');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Erreur réseau');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -271,7 +303,21 @@ export default function FicheHoraireForm({ fiche, onSuccess, onCancel }) {
           {isLoading ? 'Enregistrement...' : (fiche ? 'Modifier' : 'Créer')}
         </button>
       </div>
+
+      {fiche && (
+        <div style={{ marginTop: '1rem', borderTop: '1px dashed #ddd', paddingTop: '1rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>
+            Importer un fichier de fiche horaire (PDF / XLSX)
+          </label>
+          <input type="file" accept=".pdf,.xlsx,.xls" onChange={handleFileChange} />
+          <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+            <button type="button" onClick={handleUpload} disabled={uploading} style={{ padding: '0.5rem 1rem', background: '#0b7d48', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+              {uploading ? 'Import en cours...' : 'Importer'}
+            </button>
+            <small style={{ color: '#666', alignSelf: 'center' }}>Le fichier importé sera stocké dans public/fh et le statut mis à jour.</small>
+          </div>
+        </div>
+      )}
     </form>
   );
 }
-

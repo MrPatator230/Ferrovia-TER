@@ -20,6 +20,18 @@ export default function AdminNavClient() {
     router.push(href);
   };
 
+  const handleLogout = async (e) => {
+    e && e.preventDefault && e.preventDefault();
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Erreur lors de la déconnexion', err);
+    } finally {
+      router.push('/se-connecter');
+      router.refresh();
+    }
+  };
+
   return (
       <wcs-nav aria-label="Main menu">
           <wcs-nav-item>
@@ -72,6 +84,14 @@ export default function AdminNavClient() {
                   <wcs-mat-icon icon="settings"></wcs-mat-icon>
                   <span>Paramètres</span>
               </a>
+          </wcs-nav-item>
+
+          {/* Item de déconnexion */}
+          <wcs-nav-item style={{ marginTop: 'auto' }}>
+              <button onClick={handleLogout} style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <wcs-mat-icon icon="logout"></wcs-mat-icon>
+                  <span>Déconnexion</span>
+              </button>
           </wcs-nav-item>
 
       </wcs-nav>

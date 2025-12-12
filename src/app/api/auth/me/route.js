@@ -3,9 +3,14 @@ import pool from '@/lib/db';
 
 export async function GET(request) {
   try {
+    // Debug: afficher si le header Cookie est présent
+    const cookieHeader = request.headers.get('cookie');
+    console.debug('[API /api/auth/me] cookie header:', !!cookieHeader);
+
     const sessionToken = request.cookies.get('session_token')?.value;
 
     if (!sessionToken) {
+      console.debug('[API /api/auth/me] session_token absent');
       return NextResponse.json(
         { error: 'Non authentifié' },
         { status: 401 }
@@ -19,6 +24,7 @@ export async function GET(request) {
     );
 
     if (sessions.length === 0) {
+      console.debug('[API /api/auth/me] session introuvable pour token:', sessionToken ? '[masked]' : null);
       return NextResponse.json(
         { error: 'Session invalide' },
         { status: 401 }
@@ -30,6 +36,7 @@ export async function GET(request) {
     // Vérifier si la session a expiré
     if (new Date(session.expires) < new Date()) {
       await pool.query('DELETE FROM sessions WHERE session_token = ?', [sessionToken]);
+      console.debug('[API /api/auth/me] session expirée pour token:', sessionToken ? '[masked]' : null);
       return NextResponse.json(
         { error: 'Session expirée' },
         { status: 401 }
@@ -38,7 +45,7 @@ export async function GET(request) {
 
     // Récupérer les informations utilisateur
     const [users] = await pool.query(
-      'SELECT id, email, nom, prenom, telephone, date_naissance, ville, code_postal FROM users WHERE id = ?',
+      'SELECT id, email, nom, prenom, telephone, date_naissance, ville, code_postal, role FROM users WHERE id = ?',
       [session.user_id]
     );
 
@@ -62,4 +69,3 @@ export async function GET(request) {
     );
   }
 }
-
