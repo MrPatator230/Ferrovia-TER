@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db_horaires';
 
-const MAIN_DB_NAME = process.env.DB_NAME || 'ferrovia_ter_bfc';
-
 function safeParseJSON(input, fallback) {
   if (input == null) return fallback;
   if (typeof input === 'object') return input;
@@ -34,57 +32,87 @@ export async function GET(request) {
     const stationId = stationIdParam && !Number.isNaN(Number(stationIdParam)) ? parseInt(stationIdParam, 10) : null;
     if (!stationId) return NextResponse.json({ error: 'Paramètre id invalide' }, { status: 400 });
 
-    let sql;
-    let params;
+    // Utiliser l'API Supabase directement
+    let query = pool.client
+      .from('horaires')
+      .select(`
+        *,
+        depart_station:stations!depart_station_id(nom),
+        arrivee_station:stations!arrivee_station_id(nom)
+      `);
+
     if (type === 'depart') {
-      // horaires dont la gare sélectionnée est la gare de départ OU présente dans stops en tant que départ
-      sql = `SELECT h.*, sd.nom as depart_station_name, sa.nom as arrivee_station_name
-             FROM horaires h
-             LEFT JOIN ${MAIN_DB_NAME}.stations sd ON h.depart_station_id = sd.id
-             LEFT JOIN ${MAIN_DB_NAME}.stations sa ON h.arrivee_station_id = sa.id
-             WHERE h.depart_station_id = ? OR JSON_SEARCH(h.stops, 'one', CAST(? AS CHAR), NULL, '$[*].station_id') IS NOT NULL
-             ORDER BY h.depart_time ASC
-             LIMIT 500`;
-      params = [stationId, stationId];
+      // Filtrer par gare de départ
+      query = query.eq('depart_station_id', stationId)
+                   .order('depart_time', { ascending: true })
+                   .limit(500);
     } else if (type === 'arrivee') {
-      // horaires dont la gare sélectionnée est la gare d'arrivée OU présente dans stops en tant qu'arrivée
-      sql = `SELECT h.*, sd.nom as depart_station_name, sa.nom as arrivee_station_name
-             FROM horaires h
-             LEFT JOIN ${MAIN_DB_NAME}.stations sd ON h.depart_station_id = sd.id
-             LEFT JOIN ${MAIN_DB_NAME}.stations sa ON h.arrivee_station_id = sa.id
-             WHERE h.arrivee_station_id = ? OR JSON_SEARCH(h.stops, 'one', CAST(? AS CHAR), NULL, '$[*].station_id') IS NOT NULL
-             ORDER BY h.arrivee_time ASC
-             LIMIT 500`;
-      params = [stationId, stationId];
+      // Filtrer par gare d'arrivée
+      query = query.eq('arrivee_station_id', stationId)
+                   .order('arrivee_time', { ascending: true })
+                   .limit(500);
     } else {
-      // défaut: tout horaire passant par la gare
-      sql = `SELECT h.*, sd.nom as depart_station_name, sa.nom as arrivee_station_name
-             FROM horaires h
-             LEFT JOIN ${MAIN_DB_NAME}.stations sd ON h.depart_station_id = sd.id
-             LEFT JOIN ${MAIN_DB_NAME}.stations sa ON h.arrivee_station_id = sa.id
-             WHERE h.depart_station_id = ? OR h.arrivee_station_id = ? OR JSON_SEARCH(h.stops, 'one', CAST(? AS CHAR), NULL, '$[*].station_id') IS NOT NULL
-             ORDER BY h.depart_time ASC
-             LIMIT 500`;
-      params = [stationId, stationId, stationId];
+      // Filtrer par gare de départ OU d'arrivée
+      // Note: Pour filtrer aussi dans stops (JSON), il faudrait faire une requête séparée côté client
+      query = query.or(`depart_station_id.eq.${stationId},arrivee_station_id.eq.${stationId}`)
+                   .order('depart_time', { ascending: true })
+                   .limit(500);
     }
 
-    const [rows] = await pool.execute(sql, params);
-    const mapped = Array.isArray(rows) ? rows.map(formatHoraireRow) : [];
+    const { data, error } = await query;
 
-    // Filtrer plus précisément: pour type depart, garder ceux où à cette station il y a depart_time (dans stops ou champ principal);
+    if (error) {
+      console.error('GET /api/admin/horaires/by-station error:', error);
+      return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+    }
+
+    // Mapper les données
+    let mapped = (data || []).map(h => formatHoraireRow({
+      ...h,
+      depart_station_name: h.depart_station?.nom || null,
+      arrivee_station_name: h.arrivee_station?.nom || null
+    }));
+
+    // Filtrer aussi par stops (JSON) si nécessaire
+    // On fait ce filtrage côté serveur après récupération
+    const allHoraires = mapped;
+
+    // Ajouter les horaires où la station est dans stops
+    const [additionalRows] = await pool.execute(
+      'SELECT * FROM horaires ORDER BY depart_time ASC LIMIT 500'
+    );
+
+    const additionalMapped = (additionalRows || [])
+      .map(h => formatHoraireRow({ ...h, depart_station_name: null, arrivee_station_name: null }))
+      .filter(h => {
+        // Vérifier si stationId est dans stops
+        if (!Array.isArray(h.stops)) return false;
+        return h.stops.some(s => s.station_id === stationId);
+      });
+
+    // Fusionner sans doublons
+    const allIds = new Set(allHoraires.map(h => h.id));
+    additionalMapped.forEach(h => {
+      if (!allIds.has(h.id)) {
+        allHoraires.push(h);
+      }
+    });
+
+    // Filtrer selon le type
     if (type === 'depart') {
-      return NextResponse.json(mapped.filter((h) => {
+      mapped = allHoraires.filter((h) => {
         if (h.depart_station_id === stationId) return true;
         const s = Array.isArray(h.stops) ? h.stops.find(st => st.station_id === stationId) : null;
         return !!(s && s.depart_time);
-      }));
-    }
-    if (type === 'arrivee') {
-      return NextResponse.json(mapped.filter((h) => {
+      });
+    } else if (type === 'arrivee') {
+      mapped = allHoraires.filter((h) => {
         if (h.arrivee_station_id === stationId) return true;
         const s = Array.isArray(h.stops) ? h.stops.find(st => st.station_id === stationId) : null;
         return !!(s && s.arrivee_time);
-      }));
+      });
+    } else {
+      mapped = allHoraires;
     }
 
     return NextResponse.json(mapped);

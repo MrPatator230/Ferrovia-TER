@@ -1,25 +1,10 @@
 import { NextResponse } from 'next/server';
-import mysql from 'mysql2/promise';
-
-const dbConfig = {
-  host: process.env.MYSQL_HOST || 'localhost',
-  user: process.env.MYSQL_USER || 'root',
-  password: process.env.MYSQL_PASSWORD || '',
-  database: 'horaires',
-  charset: 'utf8mb4'
-};
-
-async function getConnection() {
-  return await mysql.createConnection(dbConfig);
-}
+import pool from '@/lib/db_horaires';
 
 // GET - Liste de toutes les lignes
 export async function GET() {
-  let connection;
   try {
-    connection = await getConnection();
-
-    const [lignes] = await connection.execute(`
+    const [lignes] = await pool.execute(`
       SELECT id, nom, code
       FROM lignes
       ORDER BY nom ASC
@@ -35,8 +20,6 @@ export async function GET() {
       success: false,
       message: 'Erreur lors de la récupération des lignes'
     }, { status: 500 });
-  } finally {
-    if (connection) await connection.end();
   }
 }
 

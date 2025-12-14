@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db_horaires';
 
-// nom de la BDD principale contenant les tables partagées (stations, users...)
-const MAIN_DB_NAME = process.env.DB_NAME || 'horaires';
-
 const TIME_RE = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/;
 function normalizeTime(t) {
   if (!t) return null;
@@ -56,16 +53,19 @@ async function fetchHoraireById(id) {
   const idNum = Number.isNaN(Number(id)) ? null : parseInt(id, 10);
   if (!idNum) return null;
   try {
-    try {
-      const [rows] = await pool.execute(
-        `SELECT h.*, sd.nom as depart_station_name, sa.nom as arrivee_station_name FROM horaires h LEFT JOIN ${MAIN_DB_NAME}.stations sd ON h.depart_station_id = sd.id LEFT JOIN ${MAIN_DB_NAME}.stations sa ON h.arrivee_station_id = sa.id WHERE h.id = ?`,
-        [idNum]
-      );
-      if (!rows || rows.length === 0) return null;
-      const r = rows[0];
-      return formatHoraireRow(r);
-    } catch (joinErr) {
-      console.warn('fetchHoraireById: JOIN failed, falling back to plain SELECT. Reason:', joinErr && joinErr.message ? joinErr.message : joinErr);
+    // Utiliser l'API Supabase avec relations
+    const { data, error } = await pool.client
+      .from('horaires')
+      .select(`
+        *,
+        depart_station:stations!depart_station_id(nom),
+        arrivee_station:stations!arrivee_station_id(nom)
+      `)
+      .eq('id', idNum)
+      .single();
+
+    if (error || !data) {
+      // Fallback: requête simple
       const [rows] = await pool.execute(
         `SELECT * FROM horaires WHERE id = ?`,
         [idNum]
@@ -74,6 +74,13 @@ async function fetchHoraireById(id) {
       const r = { ...rows[0], depart_station_name: null, arrivee_station_name: null };
       return formatHoraireRow(r);
     }
+
+    // Mapper au format attendu
+    return formatHoraireRow({
+      ...data,
+      depart_station_name: data.depart_station?.nom || null,
+      arrivee_station_name: data.arrivee_station?.nom || null
+    });
   } catch (e) {
     console.error('fetchHoraireById error', e);
     return null;

@@ -1,23 +1,10 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
-import mysql from 'mysql2/promise';
-
-const dbConfig = {
-  host: process.env.MYSQL_HOST || 'localhost',
-  user: process.env.MYSQL_USER || 'root',
-  password: process.env.MYSQL_PASSWORD || '',
-  database: 'horaires',
-  charset: 'utf8mb4'
-};
-
-async function getConnection() {
-  return await mysql.createConnection(dbConfig);
-}
+import pool from '@/lib/db_horaires';
 
 // Next.js app router expects default export functions; using POST
 export async function POST(request, { params }) {
-  let connection;
   try {
     // Await params (Next.js 15 compatibility)
     const resolvedParams = await params;
@@ -58,11 +45,10 @@ export async function POST(request, { params }) {
     await fs.writeFile(filepath, buffer);
 
     // Mettre à jour la fiche en base
-    connection = await getConnection();
     const pdfPath = `fh/${filename}`;
     const statut = 'publié'; // Valeurs possibles: 'brouillon', 'généré', 'publié'
 
-    await connection.execute(
+    await pool.execute(
       `UPDATE fiches_horaires SET pdf_path = ?, statut = ? WHERE id = ?`,
       [pdfPath, statut, id]
     );
@@ -71,14 +57,7 @@ export async function POST(request, { params }) {
   } catch (err) {
     console.error('Erreur upload fiche:', err);
     return NextResponse.json({ success: false, message: 'Erreur lors de l\'import du fichier: ' + err.message }, { status: 500 });
-  } finally {
-    if (connection) {
-      try {
-        await connection.end();
-      } catch (e) {
-        console.error('Erreur fermeture connexion:', e);
-      }
-    }
   }
+}
 }
 

@@ -1,6 +1,6 @@
 // filepath: c:\Users\MrPatator\Documents\Développement\Ferrovia-TER\src\app\api\admin\stations\[id]\route.js
 import { NextResponse } from 'next/server';
-import pool from '@/lib/db';
+import pool from '@/lib/db_horaires';
 
 async function unwrapParams(params) {
   if (!params) return {};

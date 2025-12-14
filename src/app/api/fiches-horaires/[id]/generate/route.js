@@ -1,30 +1,16 @@
 import { NextResponse } from 'next/server';
-import mysql from 'mysql2/promise';
+import pool from '@/lib/db_horaires';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import fs from 'fs/promises';
 import path from 'path';
 
-const dbConfig = {
-  host: process.env.MYSQL_HOST || 'localhost',
-  user: process.env.MYSQL_USER || 'root',
-  password: process.env.MYSQL_PASSWORD || '',
-  database: 'horaires',
-  charset: 'utf8mb4'
-};
-
-async function getConnection() {
-  return await mysql.createConnection(dbConfig);
-}
-
 // POST - Générer le PDF pour une fiche horaire
 export async function POST(request, { params }) {
-  let connection;
   try {
     const { id } = await params;
-    connection = await getConnection();
 
     // Récupérer la fiche horaire
-    const [fiches] = await connection.execute(
+    const [fiches] = await pool.execute(
       `SELECT 
         fh.*,
         sa.nom as service_annuel_nom,
@@ -54,30 +40,72 @@ export async function POST(request, { params }) {
     }
 
     // Récupérer les horaires (sillons) pour ce service annuel
-    const [horaires] = await connection.execute(
-      `SELECT 
-        h.*,
-        ds.nom as depart_station_nom,
-        as_.nom as arrivee_station_nom,
-        mr.nom as materiel_nom
-       FROM horaires h
-       LEFT JOIN ferrovia_ter_bfc.stations ds ON h.depart_station_id = ds.id
-       LEFT JOIN ferrovia_ter_bfc.stations as_ ON h.arrivee_station_id = as_.id
-       LEFT JOIN ferrovia_ter_bfc.materiel_roulant mr ON h.materiel_id = mr.id
-       WHERE h.service_annuel_id = ?
-       ORDER BY h.depart_time ASC`,
-      [fiche.service_annuel_id]
-    );
+    // Utiliser l'API Supabase pour horaires avec relations stations
+    const { data: horaires, error: horairesError } = await pool.client
+      .from('horaires')
+      .select(`
+        *,
+        depart_station:stations!depart_station_id(nom),
+        arrivee_station:stations!arrivee_station_id(nom)
+      `)
+      .eq('service_annuel_id', fiche.service_annuel_id)
+      .order('depart_time', { ascending: true });
+
+    if (horairesError) {
+      return NextResponse.json({
+        success: false,
+        message: 'Erreur lors de la récupération des horaires: ' + horairesError.message
+      }, { status: 500 });
+    }
+
+    // Mapper les horaires avec les noms des stations
+    const horairesWithStations = (horaires || []).map(h => ({
+      ...h,
+      depart_station_nom: h.depart_station?.nom || null,
+      arrivee_station_nom: h.arrivee_station?.nom || null,
+      materiel_nom: null // Sera rempli ci-dessous si nécessaire
+    }));
+
+    // Récupérer les noms de matériel depuis la base principale
+    // Note: materiel_roulant est dans ferrovia_ter_bfc (base MySQL locale)
+    // On utilise db.js pour cette table
+    const materielIds = [...new Set(horairesWithStations
+      .map(h => h.materiel_id)
+      .filter(id => id != null))];
+
+    if (materielIds.length > 0) {
+      try {
+        const dbMain = require('@/lib/db').default;
+        const placeholders = materielIds.map(() => '?').join(',');
+        const [materiels] = await dbMain.execute(
+          `SELECT id, nom FROM materiel_roulant WHERE id IN (${placeholders})`,
+          materielIds
+        );
+
+        const materielMap = {};
+        materiels.forEach(m => {
+          materielMap[m.id] = m.nom;
+        });
+
+        horairesWithStations.forEach(h => {
+          if (h.materiel_id && materielMap[h.materiel_id]) {
+            h.materiel_nom = materielMap[h.materiel_id];
+          }
+        });
+      } catch (materielError) {
+        console.warn('Impossible de récupérer les noms de matériel:', materielError);
+      }
+    }
 
     // Générer le PDF
-    const pdfPath = await generatePDF(fiche, horaires);
+    const pdfPath = await generatePDF(fiche, horairesWithStations);
 
     // Mettre à jour la fiche avec le chemin du PDF
-    await connection.execute(
+    await pool.execute(
       `UPDATE fiches_horaires 
-       SET pdf_path = ?, statut = 'généré'
+       SET pdf_path = ?, statut = ?
        WHERE id = ?`,
-      [pdfPath, id]
+      [pdfPath, 'généré', id]
     );
 
     return NextResponse.json({
@@ -91,8 +119,6 @@ export async function POST(request, { params }) {
       success: false,
       message: 'Erreur lors de la génération du PDF: ' + error.message
     }, { status: 500 });
-  } finally {
-    if (connection) await connection.end();
   }
 }
 

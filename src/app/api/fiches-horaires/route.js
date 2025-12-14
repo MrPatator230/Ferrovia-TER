@@ -1,26 +1,10 @@
 import { NextResponse } from 'next/server';
-import mysql from 'mysql2/promise';
-
-// Configuration de la connexion MySQL pour la base "horaires"
-const dbConfig = {
-  host: process.env.MYSQL_HOST || 'localhost',
-  user: process.env.MYSQL_USER || 'root',
-  password: process.env.MYSQL_PASSWORD || '',
-  database: 'horaires',
-  charset: 'utf8mb4'
-};
-
-async function getConnection() {
-  return await mysql.createConnection(dbConfig);
-}
+import pool from '@/lib/db_horaires';
 
 // GET - Liste de toutes les fiches horaires
 export async function GET() {
-  let connection;
   try {
-    connection = await getConnection();
-
-    const [fiches] = await connection.execute(`
+    const [fiches] = await pool.execute(`
       SELECT 
         fh.*,
         sa.nom as service_annuel_nom,
@@ -41,14 +25,11 @@ export async function GET() {
       success: false,
       message: 'Erreur lors de la récupération des fiches horaires'
     }, { status: 500 });
-  } finally {
-    if (connection) await connection.end();
   }
 }
 
 // POST - Créer une nouvelle fiche horaire
 export async function POST(request) {
-  let connection;
   try {
     const body = await request.json();
     const {
@@ -68,19 +49,18 @@ export async function POST(request) {
       }, { status: 400 });
     }
 
-    connection = await getConnection();
-
-    const [result] = await connection.execute(
+    const [result] = await pool.execute(
       `INSERT INTO fiches_horaires 
        (nom, service_annuel_id, type_fiche, design_region, ligne_id, afficher_page_recherche, statut) 
-       VALUES (?, ?, ?, ?, ?, ?, 'brouillon')`,
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         nom,
         service_annuel_id,
         type_fiche,
         design_region,
         (ligne_id && ligne_id !== '') ? ligne_id : null,
-        afficher_page_recherche ? 1 : 0
+        afficher_page_recherche ? true : false,
+        'brouillon'
       ]
     );
 
@@ -95,8 +75,6 @@ export async function POST(request) {
       success: false,
       message: 'Erreur lors de la création de la fiche horaire'
     }, { status: 500 });
-  } finally {
-    if (connection) await connection.end();
   }
 }
 

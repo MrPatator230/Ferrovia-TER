@@ -1,25 +1,10 @@
 import { NextResponse } from 'next/server';
-import mysql from 'mysql2/promise';
-
-const dbConfig = {
-  host: process.env.MYSQL_HOST || 'localhost',
-  user: process.env.MYSQL_USER || 'root',
-  password: process.env.MYSQL_PASSWORD || '',
-  database: 'horaires',
-  charset: 'utf8mb4'
-};
-
-async function getConnection() {
-  return await mysql.createConnection(dbConfig);
-}
+import pool from '@/lib/db_horaires';
 
 // GET - Liste de tous les services annuels
 export async function GET() {
-  let connection;
   try {
-    connection = await getConnection();
-
-    const [services] = await connection.execute(`
+    const [services] = await pool.execute(`
       SELECT * FROM services_annuels
       ORDER BY date_debut DESC
     `);
@@ -34,8 +19,6 @@ export async function GET() {
       success: false,
       message: 'Erreur lors de la récupération des services annuels'
     }, { status: 500 });
-  } finally {
-    if (connection) await connection.end();
   }
 }
 

@@ -1,6 +1,6 @@
 // filepath: c:\Users\MrPatator\Documents\Développement\Ferrovia-TER\src\app\api\admin\stations\route.js
 import { NextResponse } from 'next/server';
-import pool from '@/lib/db';
+import pool from '@/lib/db_horaires';
 
 function safeParseJsonOrCsv(value) {
   if (value == null) return [];

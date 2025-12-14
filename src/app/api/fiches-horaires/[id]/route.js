@@ -1,26 +1,12 @@
 import { NextResponse } from 'next/server';
-import mysql from 'mysql2/promise';
-
-const dbConfig = {
-  host: process.env.MYSQL_HOST || 'localhost',
-  user: process.env.MYSQL_USER || 'root',
-  password: process.env.MYSQL_PASSWORD || '',
-  database: 'horaires',
-  charset: 'utf8mb4'
-};
-
-async function getConnection() {
-  return await mysql.createConnection(dbConfig);
-}
+import pool from '@/lib/db_horaires';
 
 // GET - Récupérer une fiche horaire spécifique
 export async function GET(request, { params }) {
-  let connection;
   try {
     const { id } = await params;
-    connection = await getConnection();
 
-    const [fiches] = await connection.execute(
+    const [fiches] = await pool.execute(
       `SELECT 
         fh.*,
         sa.nom as service_annuel_nom,
@@ -49,14 +35,11 @@ export async function GET(request, { params }) {
       success: false,
       message: 'Erreur lors de la récupération de la fiche horaire'
     }, { status: 500 });
-  } finally {
-    if (connection) await connection.end();
   }
 }
 
 // PUT - Modifier une fiche horaire
 export async function PUT(request, { params }) {
-  let connection;
   try {
     const { id } = await params;
     const body = await request.json();
@@ -77,9 +60,7 @@ export async function PUT(request, { params }) {
       }, { status: 400 });
     }
 
-    connection = await getConnection();
-
-    const [result] = await connection.execute(
+    const [result] = await pool.execute(
       `UPDATE fiches_horaires 
        SET nom = ?, 
            service_annuel_id = ?, 
@@ -94,7 +75,7 @@ export async function PUT(request, { params }) {
         type_fiche,
         design_region,
         (ligne_id && ligne_id !== '') ? ligne_id : null,
-        afficher_page_recherche ? 1 : 0,
+        afficher_page_recherche ? true : false,
         id
       ]
     );
@@ -116,25 +97,21 @@ export async function PUT(request, { params }) {
       success: false,
       message: 'Erreur lors de la modification de la fiche horaire'
     }, { status: 500 });
-  } finally {
-    if (connection) await connection.end();
   }
 }
 
 // DELETE - Supprimer une fiche horaire
 export async function DELETE(request, { params }) {
-  let connection;
   try {
     const { id } = await params;
-    connection = await getConnection();
 
     // Récupérer le chemin du PDF pour le supprimer
-    const [fiches] = await connection.execute(
+    const [fiches] = await pool.execute(
       'SELECT pdf_path FROM fiches_horaires WHERE id = ?',
       [id]
     );
 
-    const [result] = await connection.execute(
+    const [result] = await pool.execute(
       'DELETE FROM fiches_horaires WHERE id = ?',
       [id]
     );
@@ -162,8 +139,6 @@ export async function DELETE(request, { params }) {
       success: false,
       message: 'Erreur lors de la suppression de la fiche horaire'
     }, { status: 500 });
-  } finally {
-    if (connection) await connection.end();
   }
 }
 

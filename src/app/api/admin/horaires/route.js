@@ -2,9 +2,6 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db_horaires';
 
-// nom de la BDD principale contenant les tables partagées (stations, users...)
-const MAIN_DB_NAME = process.env.DB_NAME || 'ferrovia_ter_bfc';
-
 // Helpers
 const TIME_RE = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/;
 function normalizeTime(t) {
@@ -56,20 +53,40 @@ function formatHoraireRow(r) {
 // GET - lister les horaires (LIMIT 500)
 export async function GET() {
   try {
-    try {
-      const [rows] = await pool.execute(
-        `SELECT h.*, sd.nom as depart_station_name, sa.nom as arrivee_station_name FROM horaires h LEFT JOIN ${MAIN_DB_NAME}.stations sd ON h.depart_station_id = sd.id LEFT JOIN ${MAIN_DB_NAME}.stations sa ON h.arrivee_station_id = sa.id ORDER BY h.depart_time DESC LIMIT 500`
-      );
-      const mapped = Array.isArray(rows) ? rows.map(formatHoraireRow) : [];
-      return NextResponse.json(mapped);
-    } catch (joinErr) {
-      console.warn('GET /api/admin/horaires: JOIN failed, falling back to plain SELECT. Reason:', joinErr && joinErr.message ? joinErr.message : joinErr);
+    // Utiliser l'API Supabase directement pour les relations
+    // au lieu de SQL JOIN qui n'est pas supporté par PostgREST
+    const { data: horaires, error } = await pool.client
+      .from('horaires')
+      .select(`
+        *,
+        depart_station:stations!depart_station_id(nom),
+        arrivee_station:stations!arrivee_station_id(nom)
+      `)
+      .order('depart_time', { ascending: false })
+      .limit(500);
+
+    if (error) {
+      console.error('GET /api/admin/horaires error:', error);
+      // Fallback: requête simple sans relations
       const [rows] = await pool.execute(
         `SELECT * FROM horaires ORDER BY depart_time DESC LIMIT 500`
       );
-      const mapped = Array.isArray(rows) ? rows.map((r) => formatHoraireRow({ ...r, depart_station_name: null, arrivee_station_name: null })) : [];
+      const mapped = Array.isArray(rows) ? rows.map((r) => formatHoraireRow({
+        ...r,
+        depart_station_name: null,
+        arrivee_station_name: null
+      })) : [];
       return NextResponse.json(mapped);
     }
+
+    // Mapper les données Supabase au format attendu
+    const mapped = horaires.map(h => formatHoraireRow({
+      ...h,
+      depart_station_name: h.depart_station?.nom || null,
+      arrivee_station_name: h.arrivee_station?.nom || null
+    }));
+
+    return NextResponse.json(mapped);
   } catch (err) {
     console.error('GET /api/admin/horaires error', err);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
