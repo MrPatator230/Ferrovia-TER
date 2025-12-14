@@ -1,38 +1,116 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './NextDepartures.module.css';
 
 export default function NextDepartures() {
-  const [selectedStation, setSelectedStation] = useState('Dijon Ville');
+  const [selectedStation, setSelectedStation] = useState('');
+  const [stations, setStations] = useState([]);
+  const [departures, setDepartures] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const stations = ['Dijon Ville', 'Besançon Viotte', 'Laroche - Migennes'];
-
-  const departures = [
-    {
-      time: '22:01',
-      destination: 'Mulhouse',
-      vehicleLine: 'Train TGV INOUI 6715',
-      platform: '-'
-    },
-    {
-      time: '22:09',
-      destination: 'Besançon Viotte',
-      vehicleLine: 'Train MOBIGO 894269',
-      platform: '-'
-    },
-    {
-      time: '22:12',
-      destination: 'Chalon-sur-Saône',
-      vehicleLine: 'Train MOBIGO 891429',
-      platform: '-'
-    },
-    {
-      time: '05:09',
-      destination: 'Besançon Viotte',
-      vehicleLine: 'Train MOBIGO 891429',
-      platform: '2'
+  // si stations est mis à jour, sélectionner la première gare si aucune sélection actuelle
+  useEffect(() => {
+    if (!selectedStation && stations && stations.length > 0) {
+      setSelectedStation(stations[0]);
     }
-  ];
+  }, [stations, selectedStation]);
+
+  // Helper: retourne true si l'horaire (format 'HH:mm' ou 'H:mm') n'est pas encore passé aujourd'hui
+  function isTimeNotPassed(timeStr) {
+    if (!timeStr) return false;
+    const parts = String(timeStr).split(':').map((s) => s.trim());
+    if (parts.length < 2) return false;
+    const hh = Number(parts[0]);
+    const mm = Number(parts[1]);
+    if (!Number.isFinite(hh) || !Number.isFinite(mm)) return false;
+
+    const now = new Date();
+    const compare = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm, 0, 0);
+    return compare >= now;
+  }
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      setLoading(true);
+      setError('');
+      try {
+        const res = await fetch('/api/admin/horaires', { cache: 'no-store' });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || `HTTP ${res.status}`);
+        }
+        const data = await res.json();
+        let list = [];
+        if (Array.isArray(data)) {
+          list = data;
+        } else if (data && Array.isArray(data.horaires)) {
+          list = data.horaires;
+        } else if (data && Array.isArray(data.fiches)) {
+          list = data.fiches;
+        } else {
+          console.warn('Format inattendu depuis /api/admin/horaires', data);
+          list = [];
+        }
+
+        if (mounted) {
+          setDepartures(list);
+
+          // extraire les noms de gares (depart_station_name) uniques
+          const stationNames = Array.from(new Set(list.map((d) => (d && (d.depart_station_name || d.depart_station || d.depart_station_nom || d.departStation || '')).toString().trim()).filter(Boolean)));
+          setStations(stationNames);
+
+          // si aucune gare sélectionnée ou sélection invalide, définir la première gare disponible
+          if (!selectedStation && stationNames.length > 0) {
+            setSelectedStation(stationNames[0]);
+          } else if (selectedStation && !stationNames.includes(selectedStation) && stationNames.length > 0) {
+            setSelectedStation(stationNames[0]);
+          }
+        }
+      } catch (e) {
+        console.error('Erreur fetch /api/admin/horaires', e);
+        if (mounted) {
+          setError(e && e.message ? e.message : 'Erreur réseau');
+          setDepartures([]);
+          setStations([]);
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Filtrer d'abord par gare sélectionnée (utilise depart_station_name renvoyé par l'API)
+  const departuresByStation = departures.filter((d) => {
+    if (!d) return false;
+    const name = (d.depart_station_name || d.depart_station || d.depart_station_nom || d.departStation || '').toString().trim();
+    return name === String(selectedStation).trim();
+  });
+
+  // Appliquer le filtre horaire
+  let visibleDepartures = departuresByStation.filter((d) => isTimeNotPassed(d.depart_time || d.time || (d.stops && d.stops[0] && d.stops[0].depart_time)));
+
+  // Trier par heure croissante
+  visibleDepartures.sort((a, b) => {
+    const ta = (a.depart_time || a.time || (a.stops && a.stops[0] && a.stops[0].depart_time) || '').toString();
+    const tb = (b.depart_time || b.time || (b.stops && b.stops[0] && b.stops[0].depart_time) || '').toString();
+    return ta.localeCompare(tb);
+  });
+
+  // Fallback : si aucun départ futur aujourd'hui n'est trouvé mais il existe des départs pour la gare,
+  // on affiche ces départs (utile si la BDD contient des horaires passés pour test)
+  const usedFallback = visibleDepartures.length === 0 && departuresByStation.length > 0;
+  if (usedFallback) {
+    visibleDepartures = departuresByStation.slice().sort((a, b) => {
+      const ta = (a.depart_time || a.time || '').toString();
+      const tb = (b.depart_time || b.time || '').toString();
+      return ta.localeCompare(tb);
+    });
+  }
 
   return (
     <div className={`card ${styles.card}`}>
@@ -43,9 +121,12 @@ export default function NextDepartures() {
         </div>
       </div>
 
-      {/* Station pills : déplacé au-dessus de la barre jaune */}
+      {/* Station pills : construit dynamiquement */}
       <div className={styles.stationPills}>
         <div className={styles.stationPillsInner}>
+          {stations.length === 0 && (
+            <div style={{ color: '#777', fontSize: '0.9rem' }}>Aucune gare détectée</div>
+          )}
           {stations.map((station) => (
             <button
               key={station}
@@ -75,63 +156,68 @@ export default function NextDepartures() {
 
       {/* List of departures */}
       <div className={styles.departuresList}>
-        {departures.map((d, idx) => (
-          <div key={idx}>
-            {/* Insert a date separator before the last item to match the image */}
-            {idx === 3 && (
-              <div className={styles.dateDivider}>
-                <div className={styles.dateText}>Vendredi 28 novembre</div>
-              </div>
-            )}
+        {loading && <div style={{ padding: 12, color: '#666' }}>Chargement des horaires…</div>}
+        {error && <div style={{ padding: 12, color: '#b00020' }}>Erreur: {error}</div>}
 
-            <div className={styles.departureItem}>
-              <div className={styles.departureTime}>{d.time}</div>
+        {!loading && !error && visibleDepartures.length === 0 && departuresByStation.length === 0 && (
+          <div style={{ padding: 12, color: '#666' }}>Aucun départ trouvé pour cette gare.</div>
+        )}
 
-              <div className={styles.departureDetails}>
-                <div className={styles.departureDestinationRow}>
-                  <div className={styles.departureDestination}>{d.destination}</div>
-                  {/* optional small action (e.g., luggage) on the right of the destination */}
-                </div>
+        {!loading && !error && visibleDepartures.length > 0 && (
+          visibleDepartures.map((d, idx) => (
+            <div key={`${d.id || d.depart_station_name || idx}-${d.depart_time || d.time || idx}`}>
+              <div className={styles.departureItem}>
+                <div className={styles.departureTime}>{d.depart_time || d.time || (d.stops && d.stops[0] && d.stops[0].depart_time) || '—'}</div>
 
-                <div className={styles.vehicleInfo}>
-                  <wcs-mat-icon icon="train" size="s" style={{ color: '#0b7d48' }}></wcs-mat-icon>
-                  <div className={styles.vehicleText}>{d.vehicleLine}</div>
-                </div>
-              </div>
-
-              {/* Platform column: if platform is '-' show a small suitcase button like on the image */}
-              <div className={styles.platformColumn}>
-                {d.platform === '-' ? (
-                  <div className={styles.platform}>{d.platform}</div>
-                ) : (
-                  <div className={styles.platformWithIcon}>
-                    <div className={styles.platform}>{d.platform}</div>
-
+                <div className={styles.departureDetails}>
+                  <div className={styles.departureDestinationRow}>
+                    <div className={styles.departureDestination}>{d.arrivee_station_name || d.destination || (d.stops && d.stops[0] && d.stops[0].station_name) || ''}</div>
+                    {/* optional small action (e.g., luggage) on the right of the destination */}
                   </div>
-                )}
+
+                  <div className={styles.vehicleInfo}>
+                    <wcs-mat-icon icon="train" size="s" style={{ color: '#0b7d48' }}></wcs-mat-icon>
+                    <div className={styles.vehicleText}>{d.numero_train || d.vehicleLine || d.type_train || ''}</div>
+                  </div>
+                </div>
+
+                {/* Platform column: si voie fournie */}
+                <div className={styles.platformColumn}>
+                  {d.voie || d.platform || d.platforme || d.platform === '-' ? (
+                    <div className={styles.platform}>{d.voie || d.platform || d.platforme || (d.platform === '-' ? '-' : '')}</div>
+                  ) : (
+                    <div className={styles.platform}>-</div>
+                  )}
+                </div>
+
+                <div className={styles.chevron}>
+                  <wcs-mat-icon icon="chevron_right" size="m"></wcs-mat-icon>
+                </div>
               </div>
 
-              <div className={styles.chevron}>
-                <wcs-mat-icon icon="chevron_right" size="m"></wcs-mat-icon>
-              </div>
+              {/* Optionnel: bande d'information après certains items */}
+              { (idx === 1 || idx === 2) && (
+                <div className={styles.infoRibbon}>
+                  <div className={styles.infoTriangle} aria-hidden="true"></div>
+                  <div className={styles.infoContent}>
+                    <div className={styles.infoIcon}>
+                      <wcs-mat-icon icon="info" size="s" style={{ color: '#0b84d6' }}></wcs-mat-icon>
+                    </div>
+                    <div className={styles.infoText}>Information</div>
+                  </div>
+                </div>
+              ) }
+
             </div>
+          ))
+        )}
 
-            {/* Insert an information blue ribbon after certain items to match the design */}
-            { (idx === 1 || idx === 2) && (
-              <div className={styles.infoRibbon}>
-                {/* Triangle pointer on the left */}
-                <div className={styles.infoTriangle} aria-hidden="true"></div>
-                <div className={styles.infoContent}>
-                  <div className={styles.infoIcon}>
-                    <wcs-mat-icon icon="info" size="s" style={{ color: '#0b84d6' }}></wcs-mat-icon>
-                  </div>
-                  <div className={styles.infoText}>Information</div>
-                </div>
-              </div>
-            ) }
-
+        {/* Fallback message si on affiche des horaires passés (fallback utilisé) */}
+        {!loading && !error && usedFallback && (
+          <div style={{ padding: '8px 12px', color: '#999', fontSize: '0.875rem' }}>
+            Aucun départ restant aujourd'hui — affichage des prochains départs disponibles.
           </div>
-        ))}
+        )}
 
       </div>
 

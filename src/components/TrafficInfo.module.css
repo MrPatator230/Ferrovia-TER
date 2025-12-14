@@ -66,6 +66,14 @@
   line-height: 1.4;
 }
 
+/* Mode réduit : limiter à 3 lignes */
+.reduced {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
 .separator {
   position: relative;
 }
@@ -161,4 +169,3 @@
     font-size: 0.9375rem;
   }
 }
-

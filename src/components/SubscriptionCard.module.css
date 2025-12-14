@@ -85,5 +85,9 @@
   .footer {
     padding: 12px;
   }
-}
 
+  /* Si l'info trafic est en mode 'Détail', masquer la carte d'abonnement pour éviter de modifier la hauteur du hero */
+  :global(body.traffic-detail-open) .subscriptionCard {
+    display: none;
+  }
+}

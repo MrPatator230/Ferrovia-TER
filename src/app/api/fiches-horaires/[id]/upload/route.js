@@ -15,16 +15,19 @@ async function getConnection() {
   return await mysql.createConnection(dbConfig);
 }
 
-export const config = {
-  api: {
-    bodyParser: false
-  }
-};
-
 // Next.js app router expects default export functions; using POST
 export async function POST(request, { params }) {
-  const { id } = params;
+  let connection;
   try {
+    // Await params (Next.js 15 compatibility)
+    const resolvedParams = await params;
+    const { id } = resolvedParams;
+
+    // Vérifier que l'ID est valide
+    if (!id) {
+      return NextResponse.json({ success: false, message: 'ID de fiche manquant' }, { status: 400 });
+    }
+
     // Récupérer le multipart/form-data raw body
     const contentType = request.headers.get('content-type') || '';
     if (!contentType.includes('multipart/form-data')) {
@@ -55,17 +58,27 @@ export async function POST(request, { params }) {
     await fs.writeFile(filepath, buffer);
 
     // Mettre à jour la fiche en base
-    const connection = await getConnection();
-    await connection.execute(
-      `UPDATE fiches_horaires SET pdf_path = ?, statut = 'importé' WHERE id = ?`,
-      [`/fh/${filename}`, id]
-    );
-    await connection.end();
+    connection = await getConnection();
+    const pdfPath = `fh/${filename}`;
+    const statut = 'publié'; // Valeurs possibles: 'brouillon', 'généré', 'publié'
 
-    return NextResponse.json({ success: true, message: 'Fichier importé', pdf_path: `/fh/${filename}` });
+    await connection.execute(
+      `UPDATE fiches_horaires SET pdf_path = ?, statut = ? WHERE id = ?`,
+      [pdfPath, statut, id]
+    );
+
+    return NextResponse.json({ success: true, message: 'Fichier importé', pdf_path: `/${pdfPath}` });
   } catch (err) {
     console.error('Erreur upload fiche:', err);
     return NextResponse.json({ success: false, message: 'Erreur lors de l\'import du fichier: ' + err.message }, { status: 500 });
+  } finally {
+    if (connection) {
+      try {
+        await connection.end();
+      } catch (e) {
+        console.error('Erreur fermeture connexion:', e);
+      }
+    }
   }
 }
 

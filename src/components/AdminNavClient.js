@@ -86,6 +86,14 @@ export default function AdminNavClient() {
               </a>
           </wcs-nav-item>
 
+          {/* Nouvelle entrée: Attributions des quais */}
+          <wcs-nav-item>
+              <a href="/espace/admin/attributions-quais" onClick={(e) => handleNavigate(e, '/espace/admin/attributions-quais')} className={isActive('/espace/admin/attributions-quais') ? 'active' : ''}>
+                  <wcs-mat-icon icon="inventory"></wcs-mat-icon>
+                  <span>Attributions des quais</span>
+              </a>
+          </wcs-nav-item>
+
           {/* Item de déconnexion */}
           <wcs-nav-item style={{ marginTop: 'auto' }}>
               <button onClick={handleLogout} style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>

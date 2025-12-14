@@ -1,0 +1,132 @@
+:root{
+  --page-bg: #f6f6f6; /* nouveau fond général */
+  --bg: #ffffff;
+  --muted: #777;
+  --green: #0b7d48;
+  --pill-active-bg: #0b7d48;
+  --pill-inactive-bg: #e9e9e9;
+}
+
+/* appliquer le fond à la page entière */
+:global(body) {
+  background: var(--page-bg);
+}
+
+.pageWrap{
+  min-height: 100vh;
+  background: transparent; /* laisser le body gérer le fond */
+  padding: 28px 40px;
+  box-sizing: border-box;
+  font-family: Inter, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* centrer le hero et donner l'apparence de carte blanche au centre */
+.hero{
+  max-width:760px;
+  margin: 60px auto 120px;
+  text-align:center;
+  padding: 40px 28px;
+  background: var(--bg); /* carte blanche au centre */
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+}
+
+.breadcrumb{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  color:var(--muted);
+  font-size:14px;
+}
+
+.homeIcon{ font-size:18px; color:var(--green); }
+
+.iconWrap{ margin: 0 auto 12px; }
+.title{
+  font-size:28px;
+  margin: 8px 0 8px;
+  color:#172b1f;
+}
+.lead{
+  color:#666;
+  margin:0 0 18px;
+}
+
+.toggleWrap{
+  display:inline-flex;
+  gap:8px;
+  margin: 12px 0 18px;
+}
+
+.toggleBtn{
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: none;
+  background: var(--pill-inactive-bg);
+  cursor: pointer;
+  color:#333;
+  font-weight:700;
+}
+.toggleBtn.active{
+  background: var(--pill-active-bg);
+  color: #fff;
+}
+
+.formCard{
+  margin: 18px auto 0;
+  width: 420px;
+  background: #fff;
+  padding: 18px;
+  border-radius: 8px;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.02);
+}
+
+.searchRow{ display:flex; align-items:center; gap:12px; position: relative; }
+.searchInput{
+  flex:1;
+  padding: 14px 16px;
+  border-radius:8px;
+  border: none;
+  background:#f7f7f7;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.03);
+  font-size:15px;
+}
+
+.autocompleteList{
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: calc(100% + 8px);
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  list-style: none;
+  margin: 0;
+  padding: 6px 0;
+  z-index: 1000;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.autocompleteItem{
+  padding: 10px 14px;
+  cursor: pointer;
+  color: #172b1f;
+}
+
+.autocompleteItemActive{
+  background: #f0f9f2;
+}
+
+.actionsRow{ display:flex; justify-content:center; margin-top:18px; }
+.ctaButton{
+  background:#3b3b3b;
+  color:#fff;
+  padding:12px 22px;
+  border-radius:8px;
+  border:none;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.hiddenLabel{ position: absolute; left: -9999px; }
