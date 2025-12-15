@@ -59,5 +59,4 @@ export async function POST(request, { params }) {
     return NextResponse.json({ success: false, message: 'Erreur lors de l\'import du fichier: ' + err.message }, { status: 500 });
   }
 }
-}
 
