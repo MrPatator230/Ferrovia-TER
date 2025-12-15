@@ -6,8 +6,11 @@ import InfoBanner from '../../../components/InfoBanner';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 import styles from './page.module.css';
+import { useRouter } from 'next/navigation';
 
 export default function HorairesSearchPage() {
+  const router = useRouter();
+
   const [stations, setStations] = useState([]);
   const [loadingStations, setLoadingStations] = useState(true);
 
@@ -139,6 +142,22 @@ export default function HorairesSearchPage() {
     return `${dd}/${mm}/${yyyy}`;
   }
 
+  function buildSearchObject() {
+    return {
+      from: fromSelected ? { nom: fromSelected.nom, code: fromSelected.code || null } : { nom: fromQuery || null, code: null },
+      to: toSelected ? { nom: toSelected.nom, code: toSelected.code || null } : { nom: toQuery || null, code: null },
+      depart: fromDate ? { date: fromDate.toISOString().slice(0,10), time: fromTime } : null,
+      retour: toDate ? { date: toDate.toISOString().slice(0,10), time: toTimeSelected } : null,
+      passengers: { count: 1, card: 'sans' }
+    };
+  }
+
+  function submitSearch() {
+    const obj = buildSearchObject();
+    const q = encodeURIComponent(JSON.stringify(obj));
+    router.push(`/offers?search=${q}`);
+  }
+
   return (
     <div>
       <Header />
@@ -223,7 +242,7 @@ export default function HorairesSearchPage() {
             </div>
 
             <div className={styles.actions}>
-              <button className={styles.searchBtn} disabled={!fromSelected || !toSelected}>Rechercher</button>
+              <button className={styles.searchBtn} disabled={!fromSelected || !toSelected} onClick={submitSearch}>Rechercher</button>
             </div>
           </div>
 

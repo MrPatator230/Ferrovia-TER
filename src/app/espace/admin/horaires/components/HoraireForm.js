@@ -105,7 +105,7 @@ export default function HoraireForm({ editHoraire, onSuccess, onCancel }){
   useEffect(()=>{ fetchServicesAnnuels(); }, []);
 
   // Si la prop editHoraire change (ou devient null), resynchroniser l'état local
-  useEffect(() => {
+    useEffect(() => {
     if (!editHoraire) return;
     try {
       setDepartStationId(editHoraire.depart_station_id || '');
@@ -114,7 +114,16 @@ export default function HoraireForm({ editHoraire, onSuccess, onCancel }){
       setArriveeTime(toTimeInputValue(editHoraire.arrivee_time || ''));
       setNumeroTrain(editHoraire.numero_train || '');
       setTypeTrain(editHoraire.type_train || '');
-      setStops(Array.isArray(editHoraire.stops) ? editHoraire.stops : (editHoraire.stops || []));
+      // enrichir les stops renvoyés par le serveur : résoudre station_code -> station_id si possible
+      const incomingStops = Array.isArray(editHoraire.stops) ? editHoraire.stops : (editHoraire.stops || []);
+      const enriched = incomingStops.map(st => ({
+        station_code: st.station_code || st.station_code === '' ? st.station_code : (st.station_code || null),
+        arrivee_time: st.arrivee_time || '',
+        depart_time: st.depart_time || '',
+        // si on a déjà un station_id côté serveur, on le conserve, sinon on tente de résoudre via stationsOptions
+        station_id: st.station_id || (st.station_code ? getStationIdFromCode(st.station_code) : '')
+      }));
+      setStops(enriched);
       setJours(editHoraire.jours_circulation || jours);
       setCirculentJoursFeries(Boolean(editHoraire.circulent_jours_feries));
       setCirculentDimanches(Boolean(editHoraire.circulent_dimanches));
@@ -124,7 +133,22 @@ export default function HoraireForm({ editHoraire, onSuccess, onCancel }){
       setServiceAnnuelId(editHoraire.service_annuel_id || '');
       setIsSubstitution(Boolean(editHoraire.is_substitution));
     } catch (e) { console.error('Sync editHoraire -> state failed', e); }
-  }, [editHoraire]);
+    }, [editHoraire]);
+
+    // Quand la liste des gares arrive, compléter les stops existants (sans écraser les arrêts modifiés)
+    useEffect(() => {
+    if (!Array.isArray(stationsOptions) || stationsOptions.length === 0) return;
+    setStops(prev => prev.map(st => {
+      // si le stop a déjà station_id, ne rien faire
+      if (st.station_id) return st;
+      // sinon, si on a station_code, tenter de résoudre
+      if (st.station_code) {
+        const sid = getStationIdFromCode(st.station_code);
+        return { ...st, station_id: sid || '' };
+      }
+      return st;
+    }));
+    }, [stationsOptions]);
 
   // Sync React state -> WCS DOM on mount and when specific states change
   useEffect(() => {
@@ -153,7 +177,9 @@ export default function HoraireForm({ editHoraire, onSuccess, onCancel }){
         const sel = node.querySelector('wcs-select[data-field="stop-station"]') || node.querySelector('select[data-field="stop-station"]');
         const inArr = node.querySelector('wcs-input[data-field="stop-arrivee"]') || node.querySelector('input[data-field="stop-arrivee"]');
         const inDep = node.querySelector('wcs-input[data-field="stop-depart"]') || node.querySelector('input[data-field="stop-depart"]');
-        try { if (sel) applyToWcsElement(sel, { value: st.station_id || '' }); } catch(e){}
+        // Convertir station_code en station_id pour l'affichage dans le select
+        const stationIdForDisplay = st.station_code ? getStationIdFromCode(st.station_code) : '';
+        try { if (sel) applyToWcsElement(sel, { value: stationIdForDisplay }); } catch(e){}
         try { if (inArr) applyToWcsElement(inArr, { value: st.arrivee_time ? toTimeInputValue(st.arrivee_time) : '' }); } catch(e){}
         try { if (inDep) applyToWcsElement(inDep, { value: st.depart_time ? toTimeInputValue(st.depart_time) : '' }); } catch(e){}
       });
@@ -185,7 +211,7 @@ export default function HoraireForm({ editHoraire, onSuccess, onCancel }){
       const subCheckbox = form.querySelector('wcs-checkbox[data-field="is-substitution"]') || form.querySelector('input[data-field="is-substitution"]');
       if (subCheckbox) try { applyToWcsElement(subCheckbox, { checked: Boolean(isSubstitution) }); } catch(e) {}
     }
-  }, [departStationId, arriveeStationId, numeroTrain, typeTrain, stops, jours, circulentJoursFeries, circulentDimanches, materielId, ligneId, serviceAnnuelId, isSubstitution]);
+    }, [departStationId, arriveeStationId, numeroTrain, typeTrain, stops, jours, circulentJoursFeries, circulentDimanches, materielId, ligneId, serviceAnnuelId, isSubstitution, stationsOptions]);
 
   // Synchronisation WCS -> React
   useEffect(() => {
@@ -321,11 +347,31 @@ export default function HoraireForm({ editHoraire, onSuccess, onCancel }){
     finally{ setLoadingServicesAnnuels(false); }
   }
 
+  // Helper: convertir station_code vers station_id pour l'affichage dans les selects
+  function getStationIdFromCode(code) {
+    if (!code) return '';
+    const station = stationsOptions.find(s => s.code === code);
+    return station ? station.id : '';
+  }
+
+  // Helper: convertir station_id vers station_code pour l'envoi à l'API
+  function getStationCodeFromId(id) {
+    if (!id) return null;
+    const station = stationsOptions.find(s => s.id === parseInt(id, 10));
+    return station ? station.code : null;
+  }
+
   function addStop(){
-    setStops(s => [...s, { station_id: '', arrivee_time: '', depart_time: '' }]);
+    setStops(s => [...s, { station_code: '', arrivee_time: '', depart_time: '' }]);
   }
   function updateStop(i, key, value){
-    setStops(s => s.map((st, idx) => idx===i ? { ...st, [key]: value } : st));
+    // Si on met à jour station_id (depuis le select), convertir en station_code
+    if (key === 'station_id') {
+      const code = getStationCodeFromId(value);
+      setStops(s => s.map((st, idx) => idx===i ? { ...st, station_code: code } : st));
+    } else {
+      setStops(s => s.map((st, idx) => idx===i ? { ...st, [key]: value } : st));
+    }
   }
   function removeStop(i){ setStops(s => s.filter((_,idx)=>idx!==i)); }
 
@@ -387,14 +433,16 @@ export default function HoraireForm({ editHoraire, onSuccess, onCancel }){
         if (lg && lg.value) setLigneId(lg.value);
         if (sa && sa.value) setServiceAnnuelId(sa.value);
 
-         // stops: synchroniser depuis DOM si présents
+         // stops: synchroniser depuis DOM si présents et convertir station_id en station_code
          const stopNodes = form.querySelectorAll('[data-stop-row]');
          if (stopNodes && stopNodes.length>0) {
            const sarr = Array.from(stopNodes).map(node => {
-             const station = node.querySelector('wcs-select[data-field="stop-station"]')?.value || node.querySelector('select[data-field="stop-station"]')?.value || '';
+             const stationId = node.querySelector('wcs-select[data-field="stop-station"]')?.value || node.querySelector('select[data-field="stop-station"]')?.value || '';
              const arrivee = node.querySelector('wcs-input[data-field="stop-arrivee"]')?.value || node.querySelector('input[data-field="stop-arrivee"]')?.value || '';
              const depart = node.querySelector('wcs-input[data-field="stop-depart"]')?.value || node.querySelector('input[data-field="stop-depart"]')?.value || '';
-             return { station_id: station, arrivee_time: arrivee, depart_time: depart };
+             // Convertir station_id en station_code
+             const stationCode = stationId ? getStationCodeFromId(stationId) : '';
+             return { station_code: stationCode, arrivee_time: arrivee, depart_time: depart };
            });
            setStops(sarr);
          }
@@ -416,14 +464,16 @@ export default function HoraireForm({ editHoraire, onSuccess, onCancel }){
         formValues.numeroTrain = form.querySelector('wcs-input[data-field="numero-train"]')?.value || numeroTrain || '';
         formValues.typeTrain = form.querySelector('wcs-input[data-field="type-train"]')?.value || typeTrain || '';
 
-        // stops local
+        // stops local - convertir station_id du select en station_code
         const stopNodes = form.querySelectorAll('[data-stop-row]');
         if (stopNodes && stopNodes.length>0) {
           formValues.stops = Array.from(stopNodes).map(node => {
-            const station = node.querySelector('wcs-select[data-field="stop-station"]')?.value || node.querySelector('select[data-field="stop-station"]')?.value || '';
+            const stationId = node.querySelector('wcs-select[data-field="stop-station"]')?.value || node.querySelector('select[data-field="stop-station"]')?.value || '';
             const arrivee = node.querySelector('wcs-input[data-field="stop-arrivee"]')?.value || node.querySelector('input[data-field="stop-arrivee"]')?.value || '';
             const depart = node.querySelector('wcs-input[data-field="stop-depart"]')?.value || node.querySelector('input[data-field="stop-depart"]')?.value || '';
-            return { station_id: station, arrivee_time: arrivee, depart_time: depart };
+            // Convertir station_id en station_code
+            const stationCode = stationId ? getStationCodeFromId(stationId) : '';
+            return { station_code: stationCode, arrivee_time: arrivee, depart_time: depart };
           });
         } else {
           // fallback to current React state
@@ -457,16 +507,16 @@ export default function HoraireForm({ editHoraire, onSuccess, onCancel }){
     if (!formValues.departTime) missingClient.push('depart_time');
     if (!formValues.arriveeTime) missingClient.push('arrivee_time');
 
-    // stops: ne pas bloquer si aucun stop n'est saisi; valider seulement les stops renseignés
+    // stops: garder station_code tel quel (pas de conversion)
     const normalizedStops = (formValues.stops || []).map((st) => ({
-      station_id: st.station_id,
+      station_code: st.station_code,
       arrivee_time: st.arrivee_time,
       depart_time: st.depart_time,
     }));
     normalizedStops.forEach((st, idx) => {
-      const hasAny = Boolean(st.station_id) || Boolean(st.arrivee_time) || Boolean(st.depart_time);
+      const hasAny = Boolean(st.station_code) || Boolean(st.arrivee_time) || Boolean(st.depart_time);
       if (!hasAny) return; // ignore ligne vide
-      if (!st.station_id) missingClient.push(`stops[${idx}].station_id`);
+      if (!st.station_code) missingClient.push(`stops[${idx}].station_code`);
       if (!st.arrivee_time) missingClient.push(`stops[${idx}].arrivee_time`);
       if (!st.depart_time) missingClient.push(`stops[${idx}].depart_time`);
     });
@@ -483,9 +533,14 @@ export default function HoraireForm({ editHoraire, onSuccess, onCancel }){
       arrivee_time: formValues.arriveeTime ? extractTime(formValues.arriveeTime) : null,
       numero_train: formValues.numeroTrain || null,
       type_train: formValues.typeTrain || null,
+      // Envoyer les stops avec station_code (pas station_id)
       stops: normalizedStops
-        .map(s => ({ station_id: s.station_id ? parseInt(String(s.station_id), 10) || null : null, depart_time: s.depart_time ? extractTime(s.depart_time) : null, arrivee_time: s.arrivee_time ? extractTime(s.arrivee_time) : null }))
-        .filter(s => s.station_id || s.depart_time || s.arrivee_time),
+        .map(s => ({
+          station_code: s.station_code || null,
+          depart_time: s.depart_time ? extractTime(s.depart_time) : null,
+          arrivee_time: s.arrivee_time ? extractTime(s.arrivee_time) : null
+        }))
+        .filter(s => s.station_code || s.depart_time || s.arrivee_time),
       jours_circulation: jours,
       circulent_jours_feries: circulentJoursFeries,
       circulent_dimanches: circulentDimanches,
@@ -497,9 +552,14 @@ export default function HoraireForm({ editHoraire, onSuccess, onCancel }){
       is_substitution: isSubstitution ? 1 : 0
     };
 
+    // Ajouter l'ID dans le payload si on est en mode édition
+    if (editHoraire && editHoraire.id) {
+      payload.id = editHoraire.id;
+    }
+
     try{
-      const method = editHoraire ? 'PUT' : 'POST';
-      const url = editHoraire ? `/api/admin/horaires/${editHoraire.id}` : '/api/admin/horaires';
+      const method = 'POST';
+      const url = editHoraire ? '/api/admin/horaires/update' : '/api/admin/horaires/create';
       console.log('Sending payload to ' + url, payload);
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!res.ok) {
@@ -510,25 +570,33 @@ export default function HoraireForm({ editHoraire, onSuccess, onCancel }){
       }
       const data = await res.json();
       // appliquer la réponse serveur dans l'état local pour que la modale affiche les valeurs persistées
-      try {
-        if (data) {
-          setDepartStationId(data.depart_station_id || '');
-          setArriveeStationId(data.arrivee_station_id || '');
-          setDepartTime(toTimeInputValue(data.depart_time || ''));
-          setArriveeTime(toTimeInputValue(data.arrivee_time || ''));
-          setNumeroTrain(data.numero_train || '');
-          setTypeTrain(data.type_train || '');
-          setStops(Array.isArray(data.stops) ? data.stops : []);
-          setJours(data.jours_circulation || jours);
-          setCirculentJoursFeries(Boolean(data.circulent_jours_feries));
-          setCirculentDimanches(Boolean(data.circulent_dimanches));
-          setJoursPersonnalises(Array.isArray(data.jours_personnalises) ? data.jours_personnalises.join('\n') : (data.jours_personnalises || ''));
-          setMaterielId(data.materiel_id || '');
-          setLigneId(data.ligne_id || '');
-          setServiceAnnuelId(data.service_annuel_id || '');
-          setIsSubstitution(Boolean(data.is_substitution));
-        }
-      } catch (e) { console.error('Apply server response to state failed', e); }
+          try {
+            if (data) {
+              setDepartStationId(data.depart_station_id || '');
+              setArriveeStationId(data.arrivee_station_id || '');
+              setDepartTime(toTimeInputValue(data.depart_time || ''));
+              setArriveeTime(toTimeInputValue(data.arrivee_time || ''));
+              setNumeroTrain(data.numero_train || '');
+              setTypeTrain(data.type_train || '');
+          // enrichir stops renvoyés par le serveur avec station_id résolu
+          const respStops = Array.isArray(data.stops) ? data.stops : [];
+          const enrichedRespStops = respStops.map(s => ({
+            station_code: s.station_code || null,
+            arrivee_time: s.arrivee_time || '',
+            depart_time: s.depart_time || '',
+            station_id: s.station_id || (s.station_code ? getStationIdFromCode(s.station_code) : '')
+          }));
+          setStops(enrichedRespStops);
+           setJours(data.jours_circulation || jours);
+           setCirculentJoursFeries(Boolean(data.circulent_jours_feries));
+           setCirculentDimanches(Boolean(data.circulent_dimanches));
+           setJoursPersonnalises(Array.isArray(data.jours_personnalises) ? data.jours_personnalises.join('\n') : (data.jours_personnalises || ''));
+           setMaterielId(data.materiel_id || '');
+           setLigneId(data.ligne_id || '');
+           setServiceAnnuelId(data.service_annuel_id || '');
+           setIsSubstitution(Boolean(data.is_substitution));
+         }
+       } catch (e) { console.error('Apply server response to state failed', e); }
 
       // Retarder la mise à jour DOM pour laisser React monter les WCS, puis appeler onSuccess
       setTimeout(() => {
@@ -563,7 +631,10 @@ export default function HoraireForm({ editHoraire, onSuccess, onCancel }){
                  const sel = node.querySelector('wcs-select[data-field="stop-station"]') || node.querySelector('select[data-field="stop-station"]');
                  const inArr = node.querySelector('wcs-input[data-field="stop-arrivee"]') || node.querySelector('input[data-field="stop-arrivee"]');
                  const inDep = node.querySelector('wcs-input[data-field="stop-depart"]') || node.querySelector('input[data-field="stop-depart"]');
-                 if (sel) applyToWcsElement(sel, { value: s.station_id || '' });
+                 // Le serveur peut renvoyer `station_code` (3 lettres) ou `station_id`.
+                 // Résoudre station_code -> station_id si nécessaire pour appliquer au select.
+                 const stationIdToApply = (s.station_id) ? s.station_id : (s.station_code ? getStationIdFromCode(s.station_code) : '');
+                 if (sel) applyToWcsElement(sel, { value: stationIdToApply || '' });
                  if (inArr) applyToWcsElement(inArr, { value: s.arrivee_time ? toTimeInputValue(s.arrivee_time) : '' });
                  if (inDep) applyToWcsElement(inDep, { value: s.depart_time ? toTimeInputValue(s.depart_time) : '' });
                });
@@ -709,7 +780,8 @@ export default function HoraireForm({ editHoraire, onSuccess, onCancel }){
             <div key={i} data-stop-row style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 8, marginBottom: 8, alignItems: 'center' }}>
               <div>
                 <label>Gare</label>
-                <wcs-select data-field="stop-station" data-index={i} value={st.station_id} required>
+                {/* Résoudre station_code -> station_id pour le select afin que le label (nom) s'affiche correctement */}
+                <wcs-select data-field="stop-station" data-index={i} value={st.station_id || getStationIdFromCode(st.station_code) || ''} required>
                   <wcs-select-option value="">-- Choisir --</wcs-select-option>
                   {stationsOptions.map(s => <wcs-select-option key={s.id} value={s.id}>{s.nom}</wcs-select-option>)}
                 </wcs-select>

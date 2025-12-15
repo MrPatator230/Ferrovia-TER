@@ -223,7 +223,7 @@ export default function NextDepartures() {
 
       {/* Footer link */}
       <div className={styles.footer}>
-        <button className={styles.footerButton}>Voir plus d'horaires &nbsp; <wcs-mat-icon icon="chevron_right" size="s"></wcs-mat-icon></button>
+        <button className={styles.footerButton}>Voir plus d'horaires &nbsp; <wcs-mat-icon icon="chevron_right" size="s" ></wcs-mat-icon></button>
       </div>
     </div>
   );

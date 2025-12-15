@@ -3,8 +3,11 @@ import React, { useEffect, useState, useRef } from 'react';
 import styles from '../app/se-deplacer/horaires/page.module.css';
 import { DayPicker } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
+import { useRouter } from 'next/navigation';
 
 export default function SearchForm() {
+  const router = useRouter();
+
   // copy of the horaires widget state
   const [stations, setStations] = useState([]);
   const [loadingStations, setLoadingStations] = useState(true);
@@ -93,6 +96,22 @@ export default function SearchForm() {
   function pickTime(which, t) { if (which === 'from') setFromTime(t); else setToTime(t); setPanelOpen(null); }
   function formatDate(d) { if (!d) return ''; const dd = String(d.getDate()).padStart(2,'0'); const mm = String(d.getMonth()+1).padStart(2,'0'); const yyyy = d.getFullYear(); return `${dd}/${mm}/${yyyy}`; }
 
+  function buildSearchObject() {
+    return {
+      from: fromSelected ? { nom: fromSelected.nom, code: fromSelected.code || null } : { nom: fromQuery || null, code: null },
+      to: toSelected ? { nom: toSelected.nom, code: toSelected.code || null } : { nom: toQuery || null, code: null },
+      depart: fromDate ? { date: fromDate.toISOString().slice(0,10), time: fromTime } : null,
+      retour: toDate ? { date: toDate.toISOString().slice(0,10), time: toTimeSelected } : null,
+      passengers: { count: 1, card: 'sans' }
+    };
+  }
+
+  function submitSearch() {
+    const obj = buildSearchObject();
+    const q = encodeURIComponent(JSON.stringify(obj));
+    router.push(`/offers?search=${q}`);
+  }
+
   return (
     <wcs-card className={styles.searchCard}>
       <div className={styles.field} onClick={() => openPanel('station','from')}>
@@ -148,7 +167,7 @@ export default function SearchForm() {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
-        <button type="button" style={{ background: '#0b7d48', color: 'white', border: 'none', padding: '12px 20px', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>Rechercher</button>
+        <button type="button" onClick={submitSearch} style={{ background: '#0b7d48', color: 'white', border: 'none', padding: '12px 20px', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>Rechercher</button>
       </div>
 
       {panelOpen && (

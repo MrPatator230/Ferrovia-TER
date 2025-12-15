@@ -37,7 +37,7 @@ export default function HorairesList({ onEdit, refreshTrigger, onCreate }){
   async function handleDelete(id){
     if (!confirm('Supprimer cet horaire ?')) return;
     try{
-      const res = await fetch(`/api/admin/horaires/${id}`, { method: 'DELETE' });
+      const res = await fetch('/api/admin/horaires/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
       if (!res.ok) {
         const text = await res.text();
         alert('Suppression impossible: ' + (text || 'Erreur serveur'));
