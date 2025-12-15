@@ -1,0 +1,75 @@
+.page { padding: 28px 24px; background: #f7f7f7; min-height: 100vh; }
+.container { max-width: 1200px; margin: 0 auto; }
+.title { font-size: 24px; margin-bottom: 10px; color: #2b4d2a; font-weight: 700; }
+.grid { display: grid; grid-template-columns: 1fr 340px; gap: 22px; align-items: start; }
+.list { }
+.dayInfo { color: #1f6f2f; margin-bottom: 12px; font-weight: 700; display:flex; gap:8px; align-items:center; }
+.dayInfo .icon { width:18px; height:18px; display:inline-block }
+
+.modesRow { display:flex; align-items:center; gap:10px; color:#333; margin-bottom:6px }
+.modesIcon wcs-mat-icon, .dateIcon wcs-mat-icon { color:#1f6f2f }
+.modesLabel { font-weight:600 }
+.dateRow { display:flex; align-items:center; gap:8px; color:#666; margin-bottom:18px }
+.dateLabel { font-weight:600 }
+
+.offer { background: #fff; border-radius: 10px; padding: 18px 20px; margin-bottom: 14px; box-shadow: 0 4px 10px rgba(0,0,0,0.04); border: 1px solid #f0f0f0; }
+.times { display:flex; align-items:center; justify-content:space-between; gap: 12px; }
+.leftTime, .rightTime { width: 140px; display:flex; flex-direction:column; align-items:flex-start; }
+.rightTime { align-items:flex-end; }
+.clock { font-size: 20px; font-weight:700; color:#1f6f2f; }
+.station { font-size: 13px; color:#355b2f; margin-top:6px }
+.duration { flex:1; text-align:center; color:#6b6b4a; position:relative; min-width:160px; }
+.duration::before { content: ''; position:absolute; left:8px; right:8px; top:50%; height:2px; background:#dfe8c2; z-index:0; }
+.duration::after { content: ''; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:10px; height:10px; background:#bcd84a; border-radius:50%; z-index:1; }
+.duration .label { position:relative; z-index:2; background: transparent; padding:0 8px; font-weight:600; color:#4a5a34 }
+.durationLabel { background:transparent; padding:0 6px; }
+
+.actionsRow { display:flex; justify-content:space-between; align-items:center; margin-top:14px; }
+.details { background: transparent; border: 1px solid rgba(31,111,47,0.08); color: #1f6f2f; padding: 8px 12px; border-radius: 18px; font-weight:600; cursor:pointer; }
+.badge { color:#7b7b6b; font-size:13px }
+.nextDay { text-align:right; color:#3b6f2f; margin-top: 10px; font-weight:600 }
+
+.summary { }
+.summaryCard { background:#eef6d9; padding: 18px; border-radius: 10px; position: sticky; top: 120px; border: 1px solid rgba(31,111,47,0.06); }
+.summaryCard .heading { font-weight:700; color:#1f6f2f; margin-bottom:8px }
+.summaryCard .muted { color:#666; margin-top:8px }
+.modify { display:inline-block; margin-top:12px; color:#0b7d48; font-weight:600 }
+
+/* accordion details styles */
+.accordionContent { margin-top: 12px; padding-top: 12px; border-top: 1px dashed rgba(31,111,47,0.08); position:relative; background: #eef8d9; padding-left: 28px; border-radius:6px; }
+/* vertical timeline line on the left of accordion */
+.accordionContent::before { content: ''; position:absolute; left:12px; top:12px; bottom:12px; width:4px; background: #cfe04a; border-radius:2px; }
+.segment { display:flex; gap:12px; padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.02); }
+.segmentLeft { width:90px; color:#1f6f2f; display:flex; flex-direction:column; align-items:flex-start; padding-left:6px }
+.segmentLeft .time { font-weight:700; color:#1f6f2f }
+.smallDur { font-size:12px; color:#6b6b4a; margin:6px 0 }
+.segmentRight { flex:1; }
+
+/* vertical bar between depart and arrive inside each segment */
+.segmentLeft { position: relative; padding-left: 18px; }
+.segmentLeft::after { content: ''; position: absolute; left: 8px; top: 22px; bottom: 18px; width: 3px; background: #cfe04a; border-radius:2px; }
+
+/* transfer (correspondance) block displayed between two segments */
+.transferBetween { display:flex; align-items:center; gap:10px; margin: 8px 0 12px 26px; color:#2b6f2a; font-weight:600; }
+.transferBetween .transferIcon { width:14px; height:14px; background:#bcd84a; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:10px; color:#ffffff; }
+.transferBetween span { font-size:13px; color:#2b6f2a }
+
+.trainLink { color:#0b7d48; font-weight:700; text-decoration:underline; cursor:pointer }
+.trainMeta { color:#6b6b4a; font-size:13px; margin-top:6px }
+.trainDestination, .operator { color:#445533; font-size:13px; margin-top:6px }
+.trainImage { width:100%; height:36px; margin-top:8px; background-image: linear-gradient(90deg, #e6f2ff 0%, #f0fff0 100%); border-radius:6px; box-shadow: inset 0 0 0 2px rgba(31,111,47,0.04); }
+.trainDesc { font-size:13px; color:#6b6b4a; margin-top:8px }
+.icons { margin-top:6px }
+.transfer { color:#2b6f2a; font-weight:600; margin-top:8px }
+.accordionEmpty { color:#7b7b6b; padding: 8px 0 }
+
+/* smaller screens */
+@media (max-width: 1000px) {
+  .grid { grid-template-columns: 1fr; }
+  .summaryCard { position: static; }
+  .duration::before { left:0; right:0 }
+  .segment { flex-direction:column }
+  .segmentLeft { flex-direction:row; gap:8px; width:100%; }
+}
+
+/* end */

@@ -1,8 +1,10 @@
 "use client";
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import styles from './NextDepartures.module.css';
 
 export default function NextDepartures() {
+  const router = useRouter();
   const [selectedStation, setSelectedStation] = useState('');
   const [stations, setStations] = useState([]);
   const [departures, setDepartures] = useState([]);
@@ -110,6 +112,24 @@ export default function NextDepartures() {
       const tb = (b.depart_time || b.time || '').toString();
       return ta.localeCompare(tb);
     });
+  }
+
+  // helper: create slug from station name (same logic as /se-deplacer/prochains-departs/[station]/page.js)
+  function slugify(name) {
+    if (!name) return '';
+    return encodeURIComponent(String(name).toLowerCase().trim()
+      .normalize('NFD').replace(/\p{Diacritic}/gu, '')
+      .replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, ''));
+  }
+
+  function handleSeeMore() {
+    if (selectedStation) {
+      const slug = slugify(selectedStation);
+      router.push(`/se-deplacer/prochains-departs/${slug}`);
+    } else {
+      // fallback to general horaires search
+      router.push('/se-deplacer/horaires');
+    }
   }
 
   return (
@@ -223,7 +243,7 @@ export default function NextDepartures() {
 
       {/* Footer link */}
       <div className={styles.footer}>
-        <button className={styles.footerButton}>Voir plus d'horaires &nbsp; <wcs-mat-icon icon="chevron_right" size="s" ></wcs-mat-icon></button>
+        <button className={styles.footerButton} onClick={handleSeeMore}>Voir plus d'horaires &nbsp; <wcs-mat-icon icon="chevron_right" size="s" ></wcs-mat-icon></button>
       </div>
     </div>
   );
