@@ -26,6 +26,7 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-quill": "^2.0.0",
+    "react-day-picker": "^8.8.2",
     "wcs-core": "^7.3.0",
     "wcs-react": "^7.3.0"
   },

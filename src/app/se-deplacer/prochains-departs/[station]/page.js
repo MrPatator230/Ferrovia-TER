@@ -25,6 +25,7 @@ export default function StationHorairesPage() {
   const [mode, setMode] = useState('depart'); // default to departures
   const [expandedId, setExpandedId] = useState(null);
   const [stationMap, setStationMap] = useState({});
+  const [stationCodeMap, setStationCodeMap] = useState({});
 
   function toggleExpanded(id) {
     setExpandedId(prev => (prev === id ? null : id));
@@ -43,7 +44,11 @@ export default function StationHorairesPage() {
     async function loadStations() {
       try {
         const resStations = await fetch('/api/admin/stations', { cache: 'no-store' });
-        if (!resStations.ok) throw new Error(`HTTP ${resStations.status}`);
+        if (!resStations.ok) {
+          console.warn('loadStations: stations API returned', resStations.status);
+          if (mounted) setError(`Erreur ${resStations.status}`);
+          return;
+        }
         const stationsData = await resStations.json();
         let found = null;
         if (Array.isArray(stationsData)) {
@@ -59,8 +64,10 @@ export default function StationHorairesPage() {
         if (mounted) {
           if (Array.isArray(stationsData)) {
             const map = {};
-            stationsData.forEach(s => { if (s && s.id != null) map[Number(s.id)] = s.nom || ''; });
+            const codeMap = {};
+            stationsData.forEach(s => { if (s && s.id != null) map[Number(s.id)] = s.nom || ''; if (s && s.code) codeMap[String(s.code).toUpperCase()] = s.nom || ''; });
             setStationMap(map);
+            setStationCodeMap(codeMap);
           }
           if (found) {
             setStation(found);
@@ -85,19 +92,40 @@ export default function StationHorairesPage() {
   async function fetchHoraires() {
     try {
       setLoading(true);
-      const res = await fetch('/api/admin/horaires', { cache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const list = Array.isArray(data) ? data : [];
+      // If we have the station and its code, call the CODE API
+      const stationCode = station && station.code ? String(station.code).toUpperCase() : null;
+      let list = [];
+      if (stationCode) {
+        const res = await fetch(`/api/admin/horaires/${encodeURIComponent(stationCode)}`, { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          list = Array.isArray(data) ? data : (data && Array.isArray(data.mapped) ? data.mapped : []);
+        } else {
+          // fallback to collection if code endpoint fails
+          console.warn('Fetch by code failed, falling back to collection', res.status);
+          const r2 = await fetch('/api/admin/horaires', { cache: 'no-store' });
+          if (r2.ok) {
+            const d2 = await r2.json();
+            list = Array.isArray(d2) ? d2 : [];
+          }
+        }
+      } else {
+        // no code available yet -> fallback to fetching full collection
+        const res = await fetch('/api/admin/horaires', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          list = Array.isArray(data) ? data : [];
+        }
+      }
       setHoraires(list);
-      setError('');
-    } catch (e) {
-      console.error('Erreur chargement horaires', e);
-      setError(e && e.message ? e.message : 'Erreur');
-    } finally {
-      setLoading(false);
-    }
-  }
+       setError('');
+     } catch (e) {
+       console.error('Erreur chargement horaires', e);
+       setError(e && e.message ? e.message : 'Erreur');
+     } finally {
+       setLoading(false);
+     }
+   }
 
   // polling des horaires toutes les 30s
   useEffect(() => {
@@ -108,13 +136,16 @@ export default function StationHorairesPage() {
   function filterHoraires() {
     if (!station && !stationName) return [];
     const stationId = station && station.id != null ? Number(station.id) : null;
+    const stationCode = station && station.code ? String(station.code).toUpperCase() : null;
 
     // helper: détecte si l'horaire a un arrêt (avec stop) correspondant à la gare
     function findStopAtStation(h) {
       if (!Array.isArray(h.stops)) return null;
       for (const s of h.stops) {
         if (!s) continue;
+        const scode = s.station_code ? String(s.station_code).toUpperCase() : null;
         const sid = s.station_id != null ? Number(s.station_id) : null;
+        if (scode && stationCode && scode === stationCode) return s;
         if (sid != null && stationId != null && sid === stationId) return s;
       }
       return null;
@@ -122,6 +153,7 @@ export default function StationHorairesPage() {
 
     // helper: indique si l'horaire a une arrivée à la gare
     function isArrivalAtStation(h) {
+      if (stationCode && h.arrivee_station_code && String(h.arrivee_station_code).toUpperCase() === stationCode) return true;
       if (stationId != null && Number(h.arrivee_station_id) === stationId) return true;
       const stop = findStopAtStation(h);
       if (stop) {
@@ -131,12 +163,13 @@ export default function StationHorairesPage() {
       }
       // fallback par nom
       const name = (stationName || '').toLowerCase().trim();
-      if (h.arrivee_station_name && h.arrivee_station_name.toString().toLowerCase().trim() === name) return true;
+      if (h.arrivee_station_name) return h.arrivee_station_name.toString().toLowerCase().trim() === name;
       return false;
     }
 
     // helper: indique si l'horaire a un départ à la gare
     function isDepartureAtStation(h) {
+      if (stationCode && h.depart_station_code && String(h.depart_station_code).toUpperCase() === stationCode) return true;
       if (stationId != null && Number(h.depart_station_id) === stationId) return true;
       const stop = findStopAtStation(h);
       if (stop) {
@@ -146,7 +179,7 @@ export default function StationHorairesPage() {
       }
       // fallback par nom
       const name = (stationName || '').toLowerCase().trim();
-      if (h.depart_station_name && h.depart_station_name.toString().toLowerCase().trim() === name) return true;
+      if (h.depart_station_name) return h.depart_station_name.toString().toLowerCase().trim() === name;
       return false;
     }
 
@@ -161,12 +194,15 @@ export default function StationHorairesPage() {
   // helper: obtenir l'heure d'un horaire pour la gare (cherche dans stops sinon utilise depart/arrivee time)
   function getTimeAtStation(h) {
     const stationId = station && station.id != null ? Number(station.id) : null;
+    const stationCode = station && station.code ? String(station.code).toUpperCase() : null;
 
     // Si on est en mode 'arrivees', privilégier l'heure d'arrivée
     if (mode === 'arrivees') {
+      if (stationCode && h.arrivee_station_code && String(h.arrivee_station_code).toUpperCase() === stationCode && h.arrivee_time) return h.arrivee_time;
       if (stationId != null && Number(h.arrivee_station_id) === stationId && h.arrivee_time) return h.arrivee_time;
     } else {
       // mode depart -> privilégier heure de départ
+      if (stationCode && h.depart_station_code && String(h.depart_station_code).toUpperCase() === stationCode && h.depart_time) return h.depart_time;
       if (stationId != null && Number(h.depart_station_id) === stationId && h.depart_time) return h.depart_time;
     }
 
@@ -174,8 +210,9 @@ export default function StationHorairesPage() {
     if (Array.isArray(h.stops)) {
       for (const s of h.stops) {
         if (!s) continue;
+        const scode = s.station_code ? String(s.station_code).toUpperCase() : null;
         const sid = s.station_id != null ? Number(s.station_id) : null;
-        if (sid != null && stationId != null && sid === stationId) {
+        if ((scode && stationCode && scode === stationCode) || (sid != null && stationId != null && sid === stationId)) {
           // en mode arrivees -> prefer arrivee_time sur le stop
           if (mode === 'arrivees') {
             if (s.arrivee_time) return s.arrivee_time;
@@ -260,20 +297,6 @@ export default function StationHorairesPage() {
     runsTomorrow: runsOnDate(h, tomorrow),
   }));
 
-  // MOCK data (extrait de l'image fournie) — utilisé si h.stops absent
-  const MOCK_STOPS = [
-    { depart_time: '07:09', station_name: 'Dijon', voie: '-' },
-    { depart_time: '07:21', station_name: 'Genlis', voie: '-' },
-    { depart_time: '07:25', station_name: 'Collonges', voie: '1' },
-    { depart_time: '07:31', station_name: 'Auxonne', voie: '-' },
-    { depart_time: '07:42', station_name: 'Dole-Ville', voie: '-' },
-    { depart_time: '07:51', station_name: 'Orchamps', voie: '1' },
-    { depart_time: '07:56', station_name: 'Ranchot', voie: '1' },
-    { depart_time: '08:01', station_name: 'Saint-Vit', voie: '1' },
-    { depart_time: '08:06', station_name: 'Dannemarie - Velesmes', voie: '1' },
-    { depart_time: '08:14', station_name: 'Besançon Viotte', voie: '-' }
-  ];
-
   // today: circule aujourd'hui ET heure non passée (ou pas d'heure)
   let todayList = allMapped.filter(item => {
     if (!item.runsToday) return false;
@@ -290,33 +313,38 @@ export default function StationHorairesPage() {
     return true;
   }).sort((a, b) => (a.timeAtStation || '').localeCompare(b.timeAtStation || ''));
 
-  function stationNameById(id, fallback) {
+  function stationNameById(id, fallback, code) {
+    const codeKey = code ? String(code).toUpperCase() : null;
+    if (codeKey && stationCodeMap && stationCodeMap[codeKey]) return stationCodeMap[codeKey];
     const sid = id != null ? Number(id) : null;
     if (sid != null && stationMap && stationMap[sid]) return stationMap[sid];
-    return fallback || '';
+    if (fallback) return fallback;
+    if (codeKey) return codeKey;
+    return '';
   }
 
   function buildStopsForAccordion(h) {
     const base = Array.isArray(h.stops) ? [...h.stops] : [];
     const nameOf = v => (v || '').toString().trim().toLowerCase();
     const stationId = station && station.id != null ? Number(station.id) : null;
+    const stationCode = station && station.code ? String(station.code).toUpperCase() : null;
 
     // inject origin/terminus if not included
-    const hasOrigin = base.some(s => nameOf(s.station_name || s.nom) === nameOf(h.depart_station_name) || Number(s.station_id) === Number(h.depart_station_id));
-    const hasTerminus = base.some(s => nameOf(s.station_name || s.nom) === nameOf(h.arrivee_station_name) || Number(s.station_id) === Number(h.arrivee_station_id));
+    const hasOrigin = base.some(s => nameOf(s.station_name || s.nom) === nameOf(h.depart_station_name) || Number(s.station_id) === Number(h.depart_station_id) || (s.station_code && h.depart_station_code && String(s.station_code).toUpperCase() === String(h.depart_station_code).toUpperCase()));
+    const hasTerminus = base.some(s => nameOf(s.station_name || s.nom) === nameOf(h.arrivee_station_name) || Number(s.station_id) === Number(h.arrivee_station_id) || (s.station_code && h.arrivee_station_code && String(s.station_code).toUpperCase() === String(h.arrivee_station_code).toUpperCase()));
 
-    if (!hasOrigin && (h.depart_station_name || h.depart_station_id != null)) {
+    if (!hasOrigin && (h.depart_station_name || h.depart_station_id != null || h.depart_station_code)) {
       base.unshift({
         depart_time: h.depart_time || null,
-        station_name: stationNameById(h.depart_station_id, h.depart_station_name || ''),
+        station_name: stationNameById(h.depart_station_id, h.depart_station_name || '', h.depart_station_code),
         station_id: h.depart_station_id,
         voie: h.voie || '-',
       });
     }
-    if (!hasTerminus && (h.arrivee_station_name || h.arrivee_station_id != null)) {
+    if (!hasTerminus && (h.arrivee_station_name || h.arrivee_station_id != null || h.arrivee_station_code)) {
       base.push({
         arrivee_time: h.arrivee_time || null,
-        station_name: stationNameById(h.arrivee_station_id, h.arrivee_station_name || ''),
+        station_name: stationNameById(h.arrivee_station_id, h.arrivee_station_name || '', h.arrivee_station_code),
         station_id: h.arrivee_station_id,
         voie: h.voie || '-',
       });
@@ -326,6 +354,8 @@ export default function StationHorairesPage() {
     const idx = base.findIndex(s => {
       const sid = s.station_id != null ? Number(s.station_id) : null;
       if (sid != null && stationId != null && sid === stationId) return true;
+      const scode = s.station_code ? String(s.station_code).toUpperCase() : null;
+      if (scode && stationCode && scode === stationCode) return true;
       return nameOf(s.station_name || s.nom) === nameOf(stationName);
     });
 
@@ -404,7 +434,7 @@ export default function StationHorairesPage() {
                   onKeyDown={(e) => handleKeyToggle(e, uid)}
                 >
                   <div className={styles.colTime}>{h.timeAtStation || '—'}</div>
-                  <div className={styles.colFrom}>{h.origin || (h.stops && h.stops[0] && h.stops[0].station_name) || ''}</div>
+                  <div className={styles.colFrom}>{mode === 'depart' ? (h.terminus || (Array.isArray(h.stops) && h.stops[h.stops.length-1] && (h.stops[h.stops.length-1].station_name || h.stops[h.stops.length-1].station_code)) || '') : (h.origin || (h.stops && h.stops[0] && h.stops[0].station_name) || '')}</div>
                   <div className={styles.colMode}><wcs-mat-icon icon="train" size="s" style={{ color: '#0b7d48' }}></wcs-mat-icon> {h.modeLabel}</div>
                   <div className={styles.colPlatform}>{h.voie || h.platform || h.platforme || '-'}</div>
                 </div>
@@ -428,7 +458,7 @@ export default function StationHorairesPage() {
                            <div key={si} className={styles.stopRow}>
                              <div className={styles.stopTime}>{s.depart_time || s.arrivee_time || '—'}</div>
                              <div className={styles.timeline}><span className={styles.dot} aria-hidden></span></div>
-                             <div className={styles.stopName}>{stationNameById(s.station_id, s.station_name || s.nom || '')}</div>
+                             <div className={styles.stopName}>{stationNameById(s.station_id, s.station_name || s.nom || '', s.station_code)}</div>
                              <div className={styles.stopPlatform}>{s.voie || s.platform || s.platforme || '-'}</div>
                            </div>
                          ));
@@ -459,7 +489,7 @@ export default function StationHorairesPage() {
                       onKeyDown={(e) => handleKeyToggle(e, uid)}
                     >
                       <div className={styles.colTime}>{h.timeAtStation || '—'}</div>
-                      <div className={styles.colFrom}>{h.origin || (h.stops && h.stops[0] && h.stops[0].station_name) || ''}</div>
+                      <div className={styles.colFrom}>{mode === 'depart' ? (h.terminus || (Array.isArray(h.stops) && h.stops[h.stops.length-1] && (h.stops[h.stops.length-1].station_name || h.stops[h.stops.length-1].station_code)) || '') : (h.origin || (h.stops && h.stops[0] && h.stops[0].station_name) || '')}</div>
                       <div className={styles.colMode}><wcs-mat-icon icon="train" size="s" style={{ color: '#0b7d48' }}></wcs-mat-icon> {h.modeLabel}</div>
                       <div className={styles.colPlatform}>{h.voie || h.platform || h.platforme || '-'}</div>
                     </div>
@@ -483,7 +513,7 @@ export default function StationHorairesPage() {
                                 <div key={si} className={styles.stopRow}>
                                   <div className={styles.stopTime}>{s.depart_time || s.arrivee_time || '—'}</div>
                                   <div className={styles.timeline}><span className={styles.dot} aria-hidden></span></div>
-                                  <div className={styles.stopName}>{stationNameById(s.station_id, s.station_name || s.nom || '')}</div>
+                                  <div className={styles.stopName}>{stationNameById(s.station_id, s.station_name || s.nom || '', s.station_code)}</div>
                                   <div className={styles.stopPlatform}>{s.voie || s.platform || s.platforme || '-'}</div>
                                 </div>
                              ));

@@ -1,0 +1,58 @@
+.page { padding: 24px 32px; display:flex; justify-content:center; }
+.page { background-image: url('/top-hero.jpg'); background-repeat: no-repeat; background-position: right center; background-size: cover; }
+.container { position: relative; width: 780px; }
+.searchCard { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 6px 18px rgba(0,0,0,0.12); }
+.field { margin-bottom: 12px; position: relative; }
+.fieldLabel { font-size: 14px; color: #666; margin-bottom:6px; }
+.input { width: 100%; padding: 12px 14px; border-radius: 8px; border: 1px solid #eee; font-size: 16px; box-sizing: border-box; }
+.inputWrapper { position: relative; }
+.icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #1f6f2f; display:flex; align-items:center; pointer-events: none; z-index: 3; }
+.inputWithIcon { padding-left: 44px; padding-right: 72px; }
+.clearBtn { position: absolute; right: 52px; top: 50%; transform: translateY(-50%); background: transparent; border: none; font-size: 18px; z-index: 5; }
+.swapBtn { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: transparent; border: 2px dashed #1f6f2f; border-radius: 50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index: 4; }
+.swapBtn wcs-mat-icon { color: #1f6f2f; }
+/* no hover effects: fixed appearance like the mock */
+.swapBtn:hover { background: transparent; }
+.row { display:flex; gap:12px; align-items:center; margin:12px 0; }
+.dateBox { flex:1; background:#f6f6f6; padding:12px; border-radius:8px; cursor:pointer }
+.timeBox { width:100px; background:#f6f6f6; padding:12px; border-radius:8px; text-align:center; cursor:pointer }
+.passengerBox { flex:1; background:#f6f6f6; padding:12px; border-radius:8px; }
+.actions { margin-top:16px; display:flex; justify-content:flex-end; }
+.searchBtn { background:#1f6f2f; color:#fff; padding:12px 20px; border-radius:8px; border:none; }
+.panel { position: absolute; right: -420px; top:0; width:420px; background:#fff; border-radius:12px; box-shadow: 0 6px 22px rgba(0,0,0,0.12); padding:18px; }
+.panelHeader { font-weight:700; font-size:20px; margin-bottom:8px; }
+.panelHint { font-size:13px; color:#666; margin-bottom:12px; }
+.resultsList { max-height:520px; overflow:auto; }
+.resultItem { width:100%; text-align:left; padding:12px; background:transparent; border:0; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; }
+.resultName { font-size:15px; }
+.resultCode { font-size:12px; color:#999; }
+
+/* calendar specific */
+.calGrid { display:flex; flex-direction:column; gap:6px; padding: 8px 12px; }
+.calWeek { display:grid; grid-template-columns:repeat(7,1fr); }
+.calDay { padding:10px; text-align:center; cursor:pointer; border-radius:20px; }
+.calDay:hover { background: #f0f0f0; }
+.calDay[selected] { background:#dfe; }
+.calDaySelected { background: #dfe59a; }
+
+/* small label */
+.smallLabel { font-size:12px; color:#666; }
+.dateValue { font-size:16px; margin-top:6px; }
+
+/* responsive small tweaks */
+@media (max-width:900px) {
+  .container { width: 100%; padding: 0 12px; }
+  .panel { position: fixed; right: 12px; top: 80px; width: calc(100% - 48px); z-index: 40; }
+}
+
+.timeSelected { background: rgba(31,111,47,0.06); }
+
+/* When a panel is open, shift the hero-right widgets to the right so the panel has space */
+:global(#hero-right-widgets.panel-open) {
+  transform: translateX(420px);
+  transition: transform 220ms ease-in-out;
+}
+
+:global(#hero-right-widgets) {
+  transition: transform 220ms ease-in-out;
+}

@@ -95,7 +95,7 @@ export default function Home() {
             </div>
 
             {/* Right: stacked widgets, each its own white card (outside the search card) */}
-            <div className="hero-right">
+            <div className="hero-right" id="hero-right-widgets">
               <div className="card" style={{ padding: 0, borderRadius: 8 }}>
                 <TrafficInfo />
               </div>

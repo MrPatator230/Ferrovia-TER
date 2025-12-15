@@ -13,30 +13,33 @@ export default function NavigationBar() {
   return (
       <div>
           <wcs-com-nav aria-label="Menu principal">
-              <wcs-com-nav-submenu
-                  label="Sous menu"
-                  panel-description="Nullam id dolor id nibh ultricies vehicula ut id elit. Cras mattis consectetur purus sit amet fermentum. Morbi leo risus, porta ac consectetur ac, vestibulum at eros."
-                  panel-title="Sous Menu">
+              <wcs-com-nav-submenu label="Se Déplacer" panel-description="" panel-title="Se Déplacer">
                   <wcs-com-nav-item>
-                      <a href="hobbies">Loisirs & Tourisme</a>
+                      <a href="/se-deplacer/horaires">Rechercher un horaire (train, car...)</a>
                   </wcs-com-nav-item>
                   <wcs-com-nav-item>
-                      <a href="lines">Toutes les lignes</a>
+                      <a href="/se-deplacer/prochains-departs">Prochains Départs</a>
                   </wcs-com-nav-item>
                   <wcs-com-nav-item>
-                      <a href="mobiles">Services mobiles</a>
+                      <a href="/se-deplacer/gares">Gares</a>
                   </wcs-com-nav-item>
                   <wcs-com-nav-item>
-                      <a href="daily">Au quotidien</a>
+                      <a href="/se-deplacer/fiches-horaires">Fiches Horaires</a>
                   </wcs-com-nav-item>
+                  <wcs-com-nav-category label="Info Trafic" description="" href="/se-deplacer/info-trafic">
+                      <wcs-com-nav-item>
+                          <a href="services">Info travaux toutes lignes</a>
+                      </wcs-com-nav-item>
+                      <wcs-com-nav-item>
+                          <a href="daily">Info affluence</a>
+                      </wcs-com-nav-item>
+                  </wcs-com-nav-category>
                   <wcs-com-nav-item>
-                      <a href="network">Le réseau</a>
+                      <a href="https://ferrocarto.mr-patator.fr">Carte du Réseau</a>
                   </wcs-com-nav-item>
+
               </wcs-com-nav-submenu>
-              <wcs-com-nav-submenu
-                  label="Autre sous menu"
-                  panel-description="Un autre sous menu avec des catégories. Cras mattis consectetur purus sit amet fermentum. Morbi leo risus, porta ac consectetur ac, vestibulum at eros."
-                  panel-title="Autre Sous Menu">
+              <wcs-com-nav-submenu label="Abonnements" panel-description="" panel-title="Abonnements">
                   <wcs-com-nav-item>
                       <a href="network">Le réseau</a>
                   </wcs-com-nav-item>
@@ -60,15 +63,74 @@ export default function NavigationBar() {
                       </wcs-com-nav-item>
                   </wcs-com-nav-category>
               </wcs-com-nav-submenu>
-              <wcs-com-nav-item>
-                  <a href="https://sncf.com" target="_blank">
-                      Ressource externe
-                  </a>
-              </wcs-com-nav-item>
+              <wcs-com-nav-submenu label="Tarifs & Cartes de Réduction" panel-description="" panel-title="Se Déplacer">
+                  <wcs-com-nav-item>
+                      <a href="/se-deplacer/horaires">Rechercher un horaire (train, car...)</a>
+                  </wcs-com-nav-item>
+                  <wcs-com-nav-item>
+                      <a href="/se-deplacer/prochains-departs">Prochains Départs</a>
+                  </wcs-com-nav-item>
+                  <wcs-com-nav-item>
+                      <a href="/se-deplacer/gares">Gares</a>
+                  </wcs-com-nav-item>
+                  <wcs-com-nav-item>
+                      <a href="/se-deplacer/fiches-horaires">Fiches Horaires</a>
+                  </wcs-com-nav-item>
+                  <wcs-com-nav-item>
+                      <a href="/se-deplacer/info-trafic">Info Trafic</a>
+                  </wcs-com-nav-item>
+                  <wcs-com-nav-item>
+                      <a href="https://ferrocarto.mr-patator.fr">Carte du Réseau</a>
+                  </wcs-com-nav-item>
+
+              </wcs-com-nav-submenu>
+              <wcs-com-nav-submenu label="Services & Contacts" panel-description="" panel-title="Se Déplacer">
+                  <wcs-com-nav-item>
+                      <a href="/se-deplacer/horaires">Rechercher un horaire (train, car...)</a>
+                  </wcs-com-nav-item>
+                  <wcs-com-nav-item>
+                      <a href="/se-deplacer/prochains-departs">Prochains Départs</a>
+                  </wcs-com-nav-item>
+                  <wcs-com-nav-item>
+                      <a href="/se-deplacer/gares">Gares</a>
+                  </wcs-com-nav-item>
+                  <wcs-com-nav-item>
+                      <a href="/se-deplacer/fiches-horaires">Fiches Horaires</a>
+                  </wcs-com-nav-item>
+                  <wcs-com-nav-item>
+                      <a href="/se-deplacer/info-trafic">Info Trafic</a>
+                  </wcs-com-nav-item>
+                  <wcs-com-nav-item>
+                      <a href="https://ferrocarto.mr-patator.fr">Carte du Réseau</a>
+                  </wcs-com-nav-item>
+
+              </wcs-com-nav-submenu>
+              <wcs-com-nav-submenu label="Bons Plans" panel-description="" panel-title="Se Déplacer">
+                  <wcs-com-nav-item>
+                      <a href="/se-deplacer/horaires">Rechercher un horaire (train, car...)</a>
+                  </wcs-com-nav-item>
+                  <wcs-com-nav-item>
+                      <a href="/se-deplacer/prochains-departs">Prochains Départs</a>
+                  </wcs-com-nav-item>
+                  <wcs-com-nav-item>
+                      <a href="/se-deplacer/gares">Gares</a>
+                  </wcs-com-nav-item>
+                  <wcs-com-nav-item>
+                      <a href="/se-deplacer/fiches-horaires">Fiches Horaires</a>
+                  </wcs-com-nav-item>
+                  <wcs-com-nav-item>
+                      <a href="/se-deplacer/info-trafic">Info Trafic</a>
+                  </wcs-com-nav-item>
+                  <wcs-com-nav-item>
+                      <a href="https://ferrocarto.mr-patator.fr">Carte du Réseau</a>
+                  </wcs-com-nav-item>
+
+              </wcs-com-nav-submenu>
+
               <div
                   slot="actions"
                   style={{
-                      alignItems: "center",
+                      alignItems: "last",
                       display: "flex",
                       position: "relative",
                       zIndex: 1000,

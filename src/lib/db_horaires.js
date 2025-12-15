@@ -135,25 +135,45 @@ const wrappedPool = {
       // UPDATE
       if (operation === 'update') {
         // Parser SET et WHERE
-        const setMatch = sql.match(/set\s+(.*?)\s+where/i);
-        const whereMatch = sql.match(/where\s+(\w+)\s*=\s*\?/i);
+        // capture multi-ligne entre SET et WHERE
+        const setMatch = sql.match(/set\s+([\s\S]*?)\s+where/i);
+        const whereMatch = sql.match(/where\s+([^\s=]+)\s*=\s*\?/i);
 
         if (setMatch && whereMatch) {
-          // Parser les SET clauses
-          const setParts = setMatch[1].split(',');
-          const dataToUpdate = {};
-          let paramIndex = 0;
+          // Extraire les noms de colonnes dans SET en recherchant les occurrences 'col = ?'
+          const setSection = setMatch[1];
+          const colRegex = /`?(\w+)`?\s*=\s*\?/g;
+          const cols = [];
+          let m;
+          while ((m = colRegex.exec(setSection)) !== null) {
+            cols.push(m[1]);
+          }
 
-          setParts.forEach(part => {
-            const [col] = part.split('=').map(s => s.trim().replace(/`/g, ''));
-            if (params[paramIndex] !== undefined) {
-              dataToUpdate[col] = params[paramIndex];
-              paramIndex++;
+          // Si on n'a pas trouvé via regex, fallback à l'ancien split
+          let dataToUpdate = {};
+          if (cols.length > 0) {
+            // Associer params[0..cols.length-1] aux colonnes
+            for (let i = 0; i < cols.length; i++) {
+              if (params[i] !== undefined) dataToUpdate[cols[i]] = params[i];
             }
-          });
+          } else {
+            const setParts = setSection.split(',');
+            let paramIndex = 0;
+            setParts.forEach(part => {
+              const [col] = part.split('=').map(s => s.trim().replace(/`/g, ''));
+              if (params[paramIndex] !== undefined) {
+                dataToUpdate[col] = params[paramIndex];
+                paramIndex++;
+              }
+            });
+          }
 
-          const whereCol = whereMatch[1];
-          const whereVal = params[params.length - 1]; // Le dernier param est le WHERE
+          // Déterminer la colonne WHERE et la valeur associée
+          let whereCol = whereMatch[1];
+          // strip table prefix if present (e.g. fh.id -> id)
+          if (whereCol && whereCol.indexOf('.') !== -1) whereCol = whereCol.split('.').pop();
+          // where value usually follows the SET params: try to pick params[cols.length] or last param
+          const whereVal = (cols.length > 0 && params.length > cols.length) ? params[cols.length] : params[params.length - 1];
 
           const { data, error } = await supabase
             .from(tableName)
@@ -228,4 +248,3 @@ const wrappedPool = {
 
 export default wrappedPool;
 export { supabase };
-
