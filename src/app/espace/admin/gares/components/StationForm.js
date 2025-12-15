@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import styles from '../gares.module.css';
 
 export default function StationForm({ editStation, onClose, onSuccess }) {
-  { editStation };
+  // `editStation` fourni via props (utilisé dans useEffect)
   const submitBtnRef = React.useRef(null);
   const formRef = React.useRef(null);
   const nomRef = React.useRef(null);
@@ -18,6 +18,8 @@ export default function StationForm({ editStation, onClose, onSuccess }) {
   const [services, setServices] = useState([]);
   const [quais, setQuais] = useState([]);
   const [transportsCommun, setTransportsCommun] = useState([]);
+  const [code, setCode] = useState('');
+  const [correspondanceField, setCorrespondanceField] = useState(''); // chaîne CSV/textarea
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
 
@@ -41,6 +43,15 @@ export default function StationForm({ editStation, onClose, onSuccess }) {
     if (editStation) {
       setNom(editStation.nom || '');
       setTypeGare(editStation.type_gare || 'ville');
+      setCode(editStation.code || '');
+      // correspondance peut venir en tableau ou string
+      if (Array.isArray(editStation.correspondance)) {
+        setCorrespondanceField(editStation.correspondance.join(', '));
+      } else if (typeof editStation.correspondance === 'string') {
+        setCorrespondanceField(editStation.correspondance);
+      } else {
+        setCorrespondanceField('');
+      }
       setServices(editStation.service || []);
       setQuais(editStation.quais || []);
       setTransportsCommun(editStation.transports_commun || []);
@@ -54,6 +65,9 @@ export default function StationForm({ editStation, onClose, onSuccess }) {
       setTimeout(() => {
         if (nomRef.current) nomRef.current.value = editStation.nom || '';
         if (typeRef.current) typeRef.current.value = editStation.type_gare || 'ville';
+        // code field - si un wcs-input existe, le mettre à jour
+        const codeNode = formRef.current.querySelector('wcs-input[data-field="code"]');
+        if (codeNode) codeNode.value = editStation.code || '';
         // checkbox services
         if (formRef.current) {
           servicesDisponibles.forEach(svc => {
@@ -77,6 +91,10 @@ export default function StationForm({ editStation, onClose, onSuccess }) {
       // Nom
       if (target && target.matches && target.matches('wcs-input[data-field="nom"]')) {
         setNom(target.value || '');
+      }
+      // Code
+      if (target && target.matches && target.matches('wcs-input[data-field="code"]')) {
+        setCode((target.value || '').toUpperCase());
       }
       // Type
       if (target && target.matches && target.matches('wcs-select[data-field="type"]')) {
@@ -121,6 +139,8 @@ export default function StationForm({ editStation, onClose, onSuccess }) {
     setServices([]);
     setQuais([]);
     setTransportsCommun([]);
+    setCode('');
+    setCorrespondanceField('');
     setQuaiNom('');
     setQuaiDistance('');
     setTransportType('bus');
@@ -133,6 +153,10 @@ export default function StationForm({ editStation, onClose, onSuccess }) {
       if (typeRef.current) typeRef.current.value = 'ville';
       if (quaiNomRef.current) quaiNomRef.current.value = '';
       if (quaiDistanceRef.current) quaiDistanceRef.current.value = '';
+      const codeNode = formRef.current && formRef.current.querySelector('wcs-input[data-field="code"]');
+      if (codeNode) codeNode.value = '';
+      const corrNode = formRef.current && formRef.current.querySelector('textarea[data-field="correspondance"]');
+      if (corrNode) corrNode.value = '';
       if (transportTypeRef.current) transportTypeRef.current.value = 'bus';
       if (transportCouleurRef.current) transportCouleurRef.current.value = '#0b7d48';
       if (formRef.current) {
@@ -192,6 +216,9 @@ export default function StationForm({ editStation, onClose, onSuccess }) {
     const form = formRef.current;
     const nomVal = (nom || (form && form.querySelector('wcs-input[data-field="nom"]')?.value)) || '';
     const typeVal = (typeGare || (form && form.querySelector('wcs-select[data-field="type"]')?.value)) || 'ville';
+    const codeVal = (code || (form && form.querySelector('wcs-input[data-field="code"]')?.value) || '').toUpperCase();
+    const corrValRaw = (correspondanceField || (form && form.querySelector('textarea[data-field="correspondance"]')?.value) || '');
+    const corrVal = corrValRaw.split(',').map(s => s.trim()).filter(Boolean);
     const servicesNodes = form ? Array.from(form.querySelectorAll('wcs-checkbox[data-service]')) : [];
     const servicesVal = services.length > 0 ? services : servicesNodes.filter(n => n.checked).map(n => n.getAttribute('data-service'));
 
@@ -199,6 +226,12 @@ export default function StationForm({ editStation, onClose, onSuccess }) {
 
     if (!nomVal || !typeVal) {
       setMessage('Le nom et le type de gare sont requis');
+      return;
+    }
+    // Validation du code: si fourni, doit être 3 lettres
+    if (codeVal && !/^[A-Z]{3}$/.test(codeVal)) {
+      setMessage('Le champ Code doit être composé de 3 lettres (A-Z)');
+      setLoading(false);
       return;
     }
     if (!servicesVal || servicesVal.length === 0) {
@@ -216,6 +249,9 @@ export default function StationForm({ editStation, onClose, onSuccess }) {
         service: servicesVal,
         quais,
         transports_commun: transportsCommun
+        ,
+        code: codeVal || null,
+        correspondance: corrVal
       };
 
       const url = isEditing ? `/api/admin/stations/${editStation.id}` : '/api/admin/stations';
@@ -293,6 +329,18 @@ export default function StationForm({ editStation, onClose, onSuccess }) {
           <wcs-select-option value="ville">Gare de ville (30 min avant départ)</wcs-select-option>
           <wcs-select-option value="interurbaine">Gare interurbaine (12h avant départ)</wcs-select-option>
         </wcs-select>
+      </div>
+
+      {/* Code */}
+      <div className={styles.formGroup}>
+        <label className={styles.formLabel}>Code (3 lettres)</label>
+        <wcs-input data-field="code" placeholder="Ex: DGV" value={code} onInput={(e) => setCode((e.target.value || '').toUpperCase())} />
+      </div>
+
+      {/* Correspondance */}
+      <div className={styles.formGroup}>
+        <label className={styles.formLabel}>Correspondances (séparées par des virgules)</label>
+        <textarea data-field="correspondance" placeholder="Ex: LIGNE1, LIGNE2" value={correspondanceField} onChange={(e) => setCorrespondanceField(e.target.value)} style={{ width: '100%', minHeight: 80 }} />
       </div>
 
       {/* Services */}

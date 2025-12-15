@@ -53,20 +53,15 @@ function formatHoraireRow(r) {
 // GET - lister les horaires (LIMIT 500)
 export async function GET() {
   try {
-    // Utiliser l'API Supabase directement pour les relations
-    // au lieu de SQL JOIN qui n'est pas supporté par PostgREST
+    // Récupérer les horaires depuis Supabase directement
     const { data: horaires, error } = await pool.client
       .from('horaires')
-      .select(`
-        *,
-        depart_station:stations!depart_station_id(nom),
-        arrivee_station:stations!arrivee_station_id(nom)
-      `)
+      .select('*')
       .order('depart_time', { ascending: false })
       .limit(500);
 
     if (error) {
-      console.error('GET /api/admin/horaires error:', error);
+      console.error('GET /api/admin/horaires error (supabase list):', error);
       // Fallback: requête simple sans relations
       const [rows] = await pool.execute(
         `SELECT * FROM horaires ORDER BY depart_time DESC LIMIT 500`
@@ -79,16 +74,35 @@ export async function GET() {
       return NextResponse.json(mapped);
     }
 
-    // Mapper les données Supabase au format attendu
-    const mapped = horaires.map(h => formatHoraireRow({
-      ...h,
-      depart_station_name: h.depart_station?.nom || null,
-      arrivee_station_name: h.arrivee_station?.nom || null
-    }));
+    // Collect all codes used in this page of results to fetch station names in batch
+    const codes = new Set();
+    horaires.forEach(h => {
+      if (h.depart_station_code) codes.add(h.depart_station_code);
+      if (h.arrivee_station_code) codes.add(h.arrivee_station_code);
+      try {
+        const stops = JSON.parse(typeof h.stops === 'string' ? h.stops : JSON.stringify(h.stops || []));
+        Array.isArray(stops) && stops.forEach(s => { if (s && s.station_code) codes.add(s.station_code); });
+      } catch(e) { /* ignore */ }
+    });
+    const codesArr = Array.from(codes).filter(Boolean);
+    let codeToName = {};
+    if (codesArr.length > 0) {
+      const { data: stationsData, error: stationsError } = await pool.client.from('stations').select('code, nom').in('code', codesArr);
+      if (!stationsError && Array.isArray(stationsData)) {
+        stationsData.forEach(s => { if (s && s.code) codeToName[s.code] = s.nom || null; });
+      }
+    }
+
+    const mapped = horaires.map(h => {
+      const formatted = formatHoraireRow(h);
+      formatted.depart_station_name = codeToName[h.depart_station_code] || null;
+      formatted.arrivee_station_name = codeToName[h.arrivee_station_code] || null;
+      return formatted;
+    });
 
     return NextResponse.json(mapped);
   } catch (err) {
-    console.error('GET /api/admin/horaires error', err);
+    console.error('GET /api/admin/horaires error:', err);
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
@@ -98,6 +112,7 @@ export async function POST(request) {
   try {
     const body = await request.json();
 
+    // Extract ids provided by client
     const depart_station_id = body.depart_station_id != null && !Number.isNaN(Number(body.depart_station_id)) ? parseInt(body.depart_station_id, 10) : null;
     const arrivee_station_id = body.arrivee_station_id != null && !Number.isNaN(Number(body.arrivee_station_id)) ? parseInt(body.arrivee_station_id, 10) : null;
     const depart_time = normalizeTime(body.depart_time);
@@ -113,7 +128,6 @@ export async function POST(request) {
     const jours_personnalises_arr = Array.isArray(body.jours_personnalises) ? body.jours_personnalises : safeParseJSON(body.jours_personnalises, []);
     const materiel_id = body.materiel_id != null && !Number.isNaN(Number(body.materiel_id)) ? parseInt(body.materiel_id, 10) : null;
     const is_substitution = body.is_substitution ? 1 : 0;
-    // support ligne_id and service_annuel_id for new schema
     const ligne_id = body.ligne_id != null && !Number.isNaN(Number(body.ligne_id)) ? parseInt(body.ligne_id, 10) : null;
     const service_annuel_id = body.service_annuel_id != null && !Number.isNaN(Number(body.service_annuel_id)) ? parseInt(body.service_annuel_id, 10) : null;
 
@@ -134,13 +148,50 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Champs requis manquants ou invalides', missing }, { status: 400 });
     }
 
-    const stopsJson = JSON.stringify(stopsArr);
+    // --- NEW: Convert station IDs to station CODES (3 lettres)
+    // We will lookup depart/arrivee and stops station ids in the `stations` table via Supabase client for efficiency
+    async function fetchStationCodesByIds(ids) {
+      if (!ids || ids.length === 0) return {};
+      // use pool.from(table) convenience wrapper
+      const uniqueIds = Array.from(new Set(ids.filter(Boolean)));
+      const { data, error } = await pool.client.from('stations').select('id, code').in('id', uniqueIds);
+      if (error || !data) {
+        console.warn('fetchStationCodesByIds: supabase lookup error', error);
+        return {};
+      }
+      const map = {};
+      data.forEach(s => { if (s && s.id != null) map[String(s.id)] = s.code || null; });
+      return map;
+    }
+
+    const allIdsToLookup = [depart_station_id, arrivee_station_id, ...stopsArr.map(s => s.station_id)];
+    const idToCode = await fetchStationCodesByIds(allIdsToLookup);
+
+    const depart_station_code = depart_station_id ? (idToCode[String(depart_station_id)] || null) : null;
+    const arrivee_station_code = arrivee_station_id ? (idToCode[String(arrivee_station_id)] || null) : null;
+
+    // Replace station_id in stops with station_code
+    const stopsWithCodes = stopsArr.map(s => ({
+      station_code: s.station_id ? (idToCode[String(s.station_id)] || null) : null,
+      depart_time: s.depart_time,
+      arrivee_time: s.arrivee_time
+    }));
+
+    // ensure codes exist
+    if (!depart_station_code) missing.depart_station_code = 'missing_or_invalid_code';
+    if (!arrivee_station_code) missing.arrivee_station_code = 'missing_or_invalid_code';
+    stopsWithCodes.forEach((s, idx) => { if (!s.station_code) missing[`stops[${idx}].station_code`] = 'missing_or_invalid_code'; });
+    if (Object.keys(missing).length > 0) {
+      return NextResponse.json({ error: 'Échec résolution codes gares', missing }, { status: 400 });
+    }
+
+    const stopsJson = JSON.stringify(stopsWithCodes);
     const joursCirculationJson = JSON.stringify(jours_circulation_obj);
     const joursPersonnalisesJson = JSON.stringify(jours_personnalises_arr);
 
     const insertParams = [
-      depart_station_id,
-      arrivee_station_id,
+      depart_station_code,
+      arrivee_station_code,
       depart_time,
       arrivee_time,
       numero_train,
@@ -151,8 +202,6 @@ export async function POST(request) {
       circulent_dimanches,
       joursPersonnalisesJson,
       materiel_id,
-      ligne_id,
-      service_annuel_id,
       is_substitution
     ];
 
@@ -172,17 +221,53 @@ export async function POST(request) {
       try { return JSON.stringify(p); } catch(e) { console.error('Failed stringify insert param', idx, e); return null; }
     });
 
-    console.debug('POST /api/admin/horaires finalInsertParams:', finalInsertParams);
+    console.debug('POST /api/admin/horaires finalInsertParams (codes):', finalInsertParams);
 
-    // Adjust INSERT to include ligne_id and service_annuel_id (keeping compatibility if DB lacks these columns)
-    let insertSql = `INSERT INTO horaires (depart_station_id, arrivee_station_id, depart_time, arrivee_time, numero_train, type_train, stops, jours_circulation, circulent_jours_feries, circulent_dimanches, jours_personnalises, materiel_id, is_substitution) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-    let paramsToUse = finalInsertParams;
+    // Insert into horaires: use depart_station_code and arrivee_station_code columns
+    // We will also include depart_station_id/arrivee_station_id for compatibility with DB constraints
+    let insertSql = `INSERT INTO horaires (depart_station_id, arrivee_station_id, depart_station_code, arrivee_station_code, depart_time, arrivee_time, numero_train, type_train, stops, jours_circulation, circulent_jours_feries, circulent_dimanches, jours_personnalises, materiel_id, is_substitution) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    let paramsToUse = [
+      depart_station_id,
+      arrivee_station_id,
+      depart_station_code,
+      arrivee_station_code,
+      depart_time,
+      arrivee_time,
+      numero_train,
+      type_train,
+      stopsJson,
+      joursCirculationJson,
+      circulent_jours_feries,
+      circulent_dimanches,
+      joursPersonnalisesJson,
+      materiel_id,
+      is_substitution
+    ];
+
     try {
-      // Try to run an INSERT that includes new columns; if DB doesn't have them this will throw and we fallback
-      insertSql = `INSERT INTO horaires (depart_station_id, arrivee_station_id, depart_time, arrivee_time, numero_train, type_train, stops, jours_circulation, circulent_jours_feries, circulent_dimanches, jours_personnalises, materiel_id, ligne_id, service_annuel_id, is_substitution) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-      paramsToUse = finalInsertParams.slice(0, finalInsertParams.length); // includes ligne_id, service_annuel_id
+      // If DB supports ligne_id/service_annuel_id, append them before is_substitution
+      insertSql = `INSERT INTO horaires (depart_station_id, arrivee_station_id, depart_station_code, arrivee_station_code, depart_time, arrivee_time, numero_train, type_train, stops, jours_circulation, circulent_jours_feries, circulent_dimanches, jours_personnalises, materiel_id, ligne_id, service_annuel_id, is_substitution) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      paramsToUse = [
+        depart_station_id,
+        arrivee_station_id,
+        depart_station_code,
+        arrivee_station_code,
+        depart_time,
+        arrivee_time,
+        numero_train,
+        type_train,
+        stopsJson,
+        joursCirculationJson,
+        circulent_jours_feries,
+        circulent_dimanches,
+        joursPersonnalisesJson,
+        materiel_id,
+        ligne_id,
+        service_annuel_id,
+        is_substitution
+      ];
     } catch (e) {
-      // noop - will use older insertSql
+      // noop
     }
 
     const [result] = await pool.execute(insertSql, paramsToUse);
@@ -191,6 +276,7 @@ export async function POST(request) {
     const [rows] = await pool.execute('SELECT * FROM horaires WHERE id = ?', [result.insertId]);
     if (!rows || rows.length === 0) return NextResponse.json({ error: 'Création échouée' }, { status: 500 });
     const newRow = formatHoraireRow(rows[0]);
+    // Map stops back to station_code form (already stored as station_code inside stops JSON)
     return NextResponse.json(newRow, { status: 201 });
   } catch (err) {
     console.error('POST /api/admin/horaires error', err);

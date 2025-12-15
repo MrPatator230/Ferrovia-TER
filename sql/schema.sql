@@ -57,6 +57,8 @@ CREATE TABLE IF NOT EXISTS stations (
     service JSON NOT NULL COMMENT 'Liste des services: TER, TGV, Intercités, Fret',
     quais JSON NOT NULL COMMENT 'Liste des quais avec nom et distance',
     transports_commun JSON NOT NULL COMMENT 'Liste des transports en commun avec type et couleur',
+    code CHAR(3) DEFAULT NULL,
+    correspondance JSON DEFAULT JSON_ARRAY(),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_nom (nom),

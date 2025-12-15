@@ -36,11 +36,10 @@ export async function GET(request) {
     const stations = rows.map(station => ({
       ...station,
       service: safeParseJsonOrCsv(station.service),
+      // mapping des quais
       quais: (() => {
-        // quais attend normalement un tableau d'objets; essayer JSON puis fallback []
         try {
           const parsed = safeParseJsonOrCsv(station.quais);
-          // si parsed est un tableau de strings (CSV), on retourne [] car on ne sait pas mapper
           if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') return [];
           return Array.isArray(parsed) ? parsed : [];
         } catch (e) { return []; }
@@ -48,11 +47,18 @@ export async function GET(request) {
       transports_commun: (() => {
         try {
           const parsed = safeParseJsonOrCsv(station.transports_commun);
-          // si parsed est un tableau de strings (CSV), on retourne des objets simples { type: 'value' }
           if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
             return parsed.map(p => ({ type: p }));
           }
           return Array.isArray(parsed) ? parsed : [];
+        } catch (e) { return []; }
+      })(),
+      // exposer `code` et `correspondance` correctement
+      code: station.code || null,
+      correspondance: (() => {
+        try {
+          const parsed = safeParseJsonOrCsv(station.correspondance);
+          return parsed;
         } catch (e) { return []; }
       })()
     }));
@@ -85,7 +91,19 @@ export async function POST(request) {
 
     console.log('POST /api/admin/stations body:', body);
 
-    let { nom, type_gare, service, quais, transports_commun } = body;
+    let { nom, type_gare, service, quais, transports_commun, code, correspondance } = body;
+
+    // Normaliser `code`: doit être null ou exactement 3 lettres (A-Z)
+    if (typeof code === 'string') {
+      code = code.trim().toUpperCase();
+      if (code === '') code = null;
+      // validation basique: 3 lettres
+      if (code && !/^[A-Z]{3}$/.test(code)) {
+        return NextResponse.json({ error: 'Le champ Code doit être composé de 3 lettres (A-Z)' }, { status: 400 });
+      }
+    } else {
+      code = null;
+    }
 
     // Normaliser `service` : peut être une chaîne 'TER,TGV' ou un JSON stringifié
     if (typeof service === 'string') {
@@ -106,18 +124,26 @@ export async function POST(request) {
     }
     if (!Array.isArray(transports_commun)) transports_commun = [];
 
+    // Normaliser `correspondance`
+    if (typeof correspondance === 'string') {
+      try { correspondance = JSON.parse(correspondance); } catch (e) { correspondance = []; }
+    }
+    if (!Array.isArray(correspondance)) correspondance = [];
+
     if (!nom || !type_gare) {
       return NextResponse.json({ error: 'Le nom et le type de gare sont requis' }, { status: 400 });
     }
 
     const [result] = await pool.execute(
-      `INSERT INTO stations (nom, type_gare, service, quais, transports_commun) VALUES (?, ?, ?, ?, ?)`,
+      `INSERT INTO stations (nom, type_gare, service, quais, transports_commun, code, correspondance) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         nom,
         type_gare,
         JSON.stringify(service),
         JSON.stringify(quais),
-        JSON.stringify(transports_commun)
+        JSON.stringify(transports_commun),
+        code,
+        JSON.stringify(correspondance)
       ]
     );
 
@@ -142,6 +168,10 @@ export async function POST(request) {
           }
           return Array.isArray(parsed) ? parsed : [];
         } catch (e) { return []; }
+      })(),
+      code: newStation.code || null,
+      correspondance: (() => {
+        try { return safeParseJsonOrCsv(newStation.correspondance || '[]'); } catch (e) { return []; }
       })()
     };
 

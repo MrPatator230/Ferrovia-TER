@@ -58,6 +58,10 @@ export async function GET(request, { params }) {
           if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') return parsed.map(p => ({ type: p }));
           return Array.isArray(parsed) ? parsed : [];
         } catch (e) { return []; }
+      })(),
+      code: stationRow.code || null,
+      correspondance: (() => {
+        try { return safeParseJsonOrCsv(stationRow.correspondance || '[]'); } catch (e) { return []; }
       })()
     };
 
@@ -94,7 +98,21 @@ export async function PUT(request, { params }) {
     }
 
     // Extraire les champs possibles (on autorise les mises à jour partielles)
-    let { nom, type_gare, service, quais, transports_commun } = body || {};
+    let { nom, type_gare, service, quais, transports_commun, code, correspondance } = body || {};
+
+    // Normaliser `code` si fourni
+    if (typeof code !== 'undefined') {
+      if (code === null || code === '') {
+        code = null;
+      } else if (typeof code === 'string') {
+        code = code.trim().toUpperCase();
+        if (!/^[A-Z]{3}$/.test(code)) {
+          return NextResponse.json({ error: 'Le champ Code doit être composé de 3 lettres (A-Z)' }, { status: 400 });
+        }
+      } else {
+        return NextResponse.json({ error: 'Champ Code invalide' }, { status: 400 });
+      }
+    }
 
     // Normaliser les champs composites si fournis
     if (typeof service === 'string') {
@@ -105,6 +123,9 @@ export async function PUT(request, { params }) {
     }
     if (typeof transports_commun === 'string') {
       try { transports_commun = JSON.parse(transports_commun); } catch (e) { transports_commun = []; }
+    }
+    if (typeof correspondance === 'string') {
+      try { correspondance = JSON.parse(correspondance); } catch (e) { correspondance = []; }
     }
 
     // Construire dynamiquement la mise à jour pour ne transmettre que les champs présents
@@ -143,6 +164,17 @@ export async function PUT(request, { params }) {
       paramsSql.push(JSON.stringify(transports_commun));
     }
 
+    if (typeof code !== 'undefined') {
+      setParts.push('code = ?');
+      paramsSql.push(code);
+    }
+
+    if (typeof correspondance !== 'undefined') {
+      if (!Array.isArray(correspondance)) correspondance = [];
+      setParts.push('correspondance = ?');
+      paramsSql.push(JSON.stringify(correspondance));
+    }
+
     if (setParts.length === 0) {
       return NextResponse.json({ error: 'Aucun champ à mettre à jour' }, { status: 400 });
     }
@@ -176,7 +208,9 @@ export async function PUT(request, { params }) {
           if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') return parsed.map(p => ({ type: p }));
           return Array.isArray(parsed) ? parsed : [];
         } catch (e) { return []; }
-      })()
+      })(),
+      code: updated.code || null,
+      correspondance: (() => { try { return safeParseJsonOrCsv(updated.correspondance || '[]'); } catch (e) { return []; } })()
     };
 
     return NextResponse.json(station);
