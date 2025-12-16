@@ -85,7 +85,6 @@ export default function PageAttributionsQuais() {
         quais: quaisStr,
         apply_to_all: applyToAll
       };
-      console.log('[onSaveQuais] Sending payload:', payload);
       const res = await fetch(`/api/admin/horaires/${horaireId}/quais`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -93,7 +92,6 @@ export default function PageAttributionsQuais() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || 'Erreur lors de l\'enregistrement');
-      console.log('[onSaveQuais] Success:', data);
       // refetch
       const r = await fetch(`/api/admin/horaires/by-station?id=${selectedStationId}&type=${activeTab}`);
       const d = await r.json();
@@ -224,7 +222,6 @@ export default function PageAttributionsQuais() {
                           ...prev,
                           [h.id]: checked
                         }));
-                        console.log('[checkbox] onChange - horaireId:', h.id, 'checked:', checked);
                       }}
                     >
                       Appliquer à toutes les gares desservies

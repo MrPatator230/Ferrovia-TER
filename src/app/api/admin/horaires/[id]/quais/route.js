@@ -13,7 +13,7 @@ export async function GET(request, { params }) {
     const { id } = params;
     const horaireId = parseInt(id, 10);
     
-    if (!horaireId || isNaN(horaireId)) {
+    if (isNaN(horaireId) || horaireId <= 0) {
       return NextResponse.json({ error: 'ID horaire invalide' }, { status: 400 });
     }
 
@@ -46,7 +46,7 @@ export async function PUT(request, { params }) {
     const { id } = params;
     const horaireId = parseInt(id, 10);
     
-    if (!horaireId || isNaN(horaireId)) {
+    if (isNaN(horaireId) || horaireId <= 0) {
       return NextResponse.json({ error: 'ID horaire invalide' }, { status: 400 });
     }
 
