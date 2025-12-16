@@ -10,6 +10,7 @@ export default function PageAttributionsQuais() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [quaisValues, setQuaisValues] = useState({});
+  const [applyAllValues, setApplyAllValues] = useState({});
 
   // charger toutes les gares au montage
   useEffect(() => {
@@ -52,12 +53,15 @@ export default function PageAttributionsQuais() {
           setHoraires(normalized);
           // initialiser les valeurs de quais
           const initialQuais = {};
+          const initialApplyAll = {};
           normalized.forEach(h => {
             const sStop = Array.isArray(h.stops) ? h.stops.find(st => st.station_id === selectedStationId) : null;
             const q = sStop && Array.isArray(sStop.quais) ? sStop.quais : [];
             initialQuais[h.id] = q.join(', ');
+            initialApplyAll[h.id] = false;
           });
           setQuaisValues(initialQuais);
+          setApplyAllValues(initialApplyAll);
         }
       })
       .catch(e => {
@@ -72,16 +76,24 @@ export default function PageAttributionsQuais() {
 
   const onSaveQuais = async (horaireId) => {
     const quaisStr = quaisValues[horaireId] || '';
+    const applyToAll = Boolean(applyAllValues[horaireId]);
     setLoading(true);
     setError(null);
     try {
+      const payload = {
+        station_id: selectedStationId,
+        quais: quaisStr,
+        apply_to_all: applyToAll
+      };
+      console.log('[onSaveQuais] Sending payload:', payload);
       const res = await fetch(`/api/admin/horaires/${horaireId}/quais`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ station_id: selectedStationId, quais: quaisStr }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || 'Erreur lors de l\'enregistrement');
+      console.log('[onSaveQuais] Success:', data);
       // refetch
       const r = await fetch(`/api/admin/horaires/by-station?id=${selectedStationId}&type=${activeTab}`);
       const d = await r.json();
@@ -89,12 +101,15 @@ export default function PageAttributionsQuais() {
       setHoraires(normalized);
       // réinitialiser les valeurs
       const updatedQuais = {};
+      const updatedApplyAll = {};
       normalized.forEach(h => {
         const sStop = Array.isArray(h.stops) ? h.stops.find(st => st.station_id === selectedStationId) : null;
         const q = sStop && Array.isArray(sStop.quais) ? sStop.quais : [];
         updatedQuais[h.id] = q.join(', ');
+        updatedApplyAll[h.id] = false;
       });
       setQuaisValues(updatedQuais);
+      setApplyAllValues(updatedApplyAll);
     } catch (e) {
       setError('Enregistrement impossible: ' + (e?.message || String(e)));
     } finally {
@@ -175,6 +190,7 @@ export default function PageAttributionsQuais() {
                 <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd', backgroundColor: '#f5f5f5' }}>H. Départ</th>
                 <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd', backgroundColor: '#f5f5f5' }}>H. Arrivée</th>
                 <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd', backgroundColor: '#f5f5f5' }}>Quais</th>
+                <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd', backgroundColor: '#f5f5f5' }}>Appliquer partout</th>
                 <th style={{ padding: '12px', textAlign: 'left', borderBottom: '2px solid #ddd', backgroundColor: '#f5f5f5' }}>Actions</th>
               </tr>
             </thead>
@@ -198,6 +214,21 @@ export default function PageAttributionsQuais() {
                       }}
                       style={{ width: '150px' }}
                     ></wcs-input>
+                  </td>
+                  <td style={{ padding: '12px' }}>
+                    <wcs-checkbox
+                      checked={applyAllValues[h.id] || false}
+                      onWcsChange={(e) => {
+                        const checked = e?.detail?.checked ?? false;
+                        setApplyAllValues(prev => ({
+                          ...prev,
+                          [h.id]: checked
+                        }));
+                        console.log('[checkbox] onChange - horaireId:', h.id, 'checked:', checked);
+                      }}
+                    >
+                      Appliquer à toutes les gares desservies
+                    </wcs-checkbox>
                   </td>
                   <td style={{ padding: '12px' }}>
                     <wcs-button
