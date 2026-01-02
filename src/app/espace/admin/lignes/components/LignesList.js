@@ -188,7 +188,9 @@ export default function LignesList({ onEdit, refreshTrigger }) {
       )}
 
       {/* Modal WCS pour afficher les quais d'une ou plusieurs gares */}
-      <wcs-modal ref={quaisModalRef} show-close-button size="m">
+      {/* hidden fallback trigger for quais modal */}
+      <button id="quais-modal-trigger-fallback" style={{ display: 'none' }} aria-hidden="true" />
+      <wcs-modal ref={quaisModalRef} modal-trigger-controls-id="quais-modal-trigger-fallback" show-close-button size="m">
         <div slot="header">{quaisPayload.title || 'Quais'}</div>
         <div style={{ padding: 12, maxHeight: '60vh', overflow: 'auto' }}>
           {quaisPayload.items && quaisPayload.items.length ? (

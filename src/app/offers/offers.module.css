@@ -40,7 +40,7 @@
 /* vertical timeline line on the left of accordion */
 .accordionContent::before { content: ''; position:absolute; left:12px; top:12px; bottom:12px; width:4px; background: #cfe04a; border-radius:2px; }
 .segment { display:flex; gap:12px; padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.02); }
-.segmentLeft { width:90px; color:#1f6f2f; display:flex; flex-direction:column; align-items:flex-start; padding-left:6px }
+.segmentLeft { width:90px; color:#1f6f2f; display:flex; flex-direction:column; align-items:flex-start; padding-left:18px }
 .segmentLeft .time { font-weight:700; color:#1f6f2f }
 .smallDur { font-size:12px; color:#6b6b4a; margin:6px 0 }
 .segmentRight { flex:1; }
@@ -57,19 +57,257 @@
 .trainLink { color:#0b7d48; font-weight:700; text-decoration:underline; cursor:pointer }
 .trainMeta { color:#6b6b4a; font-size:13px; margin-top:6px }
 .trainDestination, .operator { color:#445533; font-size:13px; margin-top:6px }
-.trainImage { width:100%; height:36px; margin-top:8px; background-image: linear-gradient(90deg, #e6f2ff 0%, #f0fff0 100%); border-radius:6px; box-shadow: inset 0 0 0 2px rgba(31,111,47,0.04); }
+.trainImage { display:block; width:100%; max-height:72px; height:auto; margin-top:8px; border-radius:6px; object-fit:cover; box-shadow: inset 0 0 0 2px rgba(31,111,47,0.04); }
 .trainDesc { font-size:13px; color:#6b6b4a; margin-top:8px }
 .icons { margin-top:6px }
 .transfer { color:#2b6f2a; font-weight:600; margin-top:8px }
 .accordionEmpty { color:#7b7b6b; padding: 8px 0 }
 
-/* smaller screens */
+/* ========================================
+   RESPONSIVE & ADAPTIVE STYLES
+   ======================================== */
+
+/* Tablettes et petits écrans (max 1000px) */
 @media (max-width: 1000px) {
-  .grid { grid-template-columns: 1fr; }
-  .summaryCard { position: static; }
-  .duration::before { left:0; right:0 }
-  .segment { flex-direction:column }
-  .segmentLeft { flex-direction:row; gap:8px; width:100%; }
+  .page { padding: 20px 16px; }
+  .grid { grid-template-columns: 1fr; gap: 16px; }
+  .summaryCard { position: static; margin-bottom: 20px; }
+  .duration::before { left:0; right:0; }
+  /* Keep accordion layout identical to desktop */
+  .segment { display:flex; flex-direction:row; gap:12px; }
+  .segmentLeft { width:90px; color:#1f6f2f; display:flex; flex-direction:column; align-items:flex-start; padding-left:18px }
+  .segmentLeft::after { left: 8px; top: 22px; bottom: 18px; width: 3px; background: #cfe04a; border-radius:2px; }
+  .title { font-size: 22px; }
+}
+
+/* Tablettes portrait (max 768px) */
+@media (max-width: 768px) {
+  .page { padding: 16px 12px; }
+  .title { font-size: 20px; margin-bottom: 8px; }
+
+  /* Offres */
+  .offer { padding: 14px 16px; margin-bottom: 12px; }
+
+  /* Layout horaires */
+  .times { gap: 8px; }
+  .leftTime, .rightTime { width: 120px; }
+  .clock { font-size: 18px; }
+  .station { font-size: 12px; }
+  .duration { min-width: 120px; }
+  .durationLabel { font-size: 13px; }
+
+  /* Actions */
+  .actionsRow { flex-wrap: wrap; gap: 8px; }
+  .details { padding: 6px 10px; font-size: 14px; }
+  .badge { font-size: 12px; }
+
+  /* Summary card */
+  .summaryCard { padding: 14px; font-size: 14px; }
+  .modify { font-size: 14px; }
+
+  /* Keep desktop accordion look on tablets */
+  /* no overrides that change accordion structure */
+}
+
+/* Mobile (max 480px) */
+@media (max-width: 480px) {
+  .page { padding: 12px 8px; }
+  .container { padding: 0; }
+  .title { font-size: 18px; text-align: center; }
+
+  /* Modes et date - Stack vertical sur mobile */
+  .modesRow, .dateRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    text-align: left;
+  }
+  .dateLabel { font-size: 13px; }
+
+  /* Offres - Layout compact */
+  .offer {
+    padding: 12px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+  }
+
+  /* Horaires - Stack vertical sur très petit écran */
+  .times {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  .leftTime, .rightTime {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .leftTime {
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(31,111,47,0.1);
+  }
+  .rightTime {
+    padding-top: 8px;
+    flex-direction: row-reverse;
+  }
+  .clock { font-size: 16px; }
+  .station {
+    margin-top: 0;
+    font-size: 11px;
+  }
+
+  /* Duration - Horizontal sur mobile */
+  .duration {
+    min-width: auto;
+    order: 1;
+    margin: 8px 0;
+  }
+  .duration::before {
+    top: auto;
+    bottom: 0;
+    height: 2px;
+  }
+  .duration::after {
+    top: auto;
+    bottom: 0;
+  }
+  .durationLabel { font-size: 12px; }
+
+  /* Actions - Stack sur mobile */
+  .actionsRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .details {
+    width: 100%;
+    text-align: center;
+    padding: 10px;
+    font-size: 13px;
+  }
+  .badge {
+    text-align: center;
+    font-size: 11px;
+  }
+
+  /* Summary card - Plus compact */
+  .summaryCard {
+    padding: 12px;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  .summaryCard > div {
+    margin-bottom: 8px;
+  }
+  .modify {
+    display: block;
+    text-align: center;
+    margin-top: 10px;
+    padding: 8px;
+    background: rgba(11,125,72,0.1);
+    border-radius: 6px;
+  }
+
+  /* Accordion: keep the same visual structure as desktop */
+  .accordionContent { margin-top: 12px; padding-top: 12px; border-top: 1px dashed rgba(31,111,47,0.08); position:relative; background: #eef8d9; padding-left: 28px; border-radius:6px; }
+  .accordionContent::before { content: ''; position:absolute; left:12px; top:12px; bottom:12px; width:4px; background: #cfe04a; border-radius:2px; }
+  .segment { display:flex; gap:12px; padding: 12px 0; border-bottom: 1px solid rgba(0,0,0,0.02); }
+  .segmentLeft { width:90px; color:#1f6f2f; display:flex; flex-direction:column; align-items:flex-start; padding-left:18px }
+  .segmentLeft::after { content: ''; position: absolute; left: 8px; top: 22px; bottom: 18px; width: 3px; background: #cfe04a; border-radius:2px; }
+  .time { font-size: 14px; }
+  .smallDur { font-size: 11px; margin: 4px 0; }
+
+  .segmentRight { font-size: 13px; }
+  .trainLink { font-size: 14px; }
+  .trainMeta, .trainDestination, .operator { font-size: 11px; margin-top: 4px; }
+  .trainImage { height: 28px; margin-top: 6px; }
+  .trainDesc { font-size: 11px; margin-top: 6px; line-height: 1.4; }
+  .icons { margin-top: 4px; font-size: 12px; }
+
+  /* Transfer */
+  .transferBetween {
+    margin: 6px 0 10px 12px;
+    gap: 6px;
+  }
+  .transferBetween span { font-size: 12px; }
+
+  /* Next day */
+  .nextDay {
+    text-align: center;
+    font-size: 14px;
+    margin-top: 12px;
+  }
+}
+
+/* Très petits mobiles (max 360px) */
+@media (max-width: 360px) {
+  .page { padding: 10px 6px; }
+  .title { font-size: 16px; }
+
+  .offer { padding: 10px; }
+  .clock { font-size: 15px; }
+  .station { font-size: 10px; }
+  .durationLabel { font-size: 11px; }
+
+  .details {
+    padding: 8px;
+    font-size: 12px;
+  }
+
+  .summaryCard { padding: 10px; font-size: 12px; }
+
+  .accordionContent { font-size: 12px; }
+  .segmentLeft { font-size: 12px; }
+  .time { font-size: 13px; }
+  .trainLink { font-size: 13px; }
+}
+
+/* Landscape mobile - Optimisations */
+@media (max-width: 768px) and (orientation: landscape) {
+  .page { padding: 12px 16px; }
+  .times { flex-direction: row; }
+  .leftTime, .rightTime {
+    flex-direction: column;
+    width: 100px;
+  }
+  .station { margin-top: 4px; }
+  .duration { order: 0; }
+}
+
+/* Améliorations pour la lisibilité */
+@media (max-width: 768px) {
+  /* Touch targets plus grands pour mobile */
+  .details, .trainLink, .modify {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Espacement amélioré */
+  .offer:last-child {
+    margin-bottom: 80px; /* Espace pour la navigation fixe */
+  }
+}
+
+/* Print styles (bonus) */
+@media print {
+  .page { padding: 0; background: white; }
+  .summaryCard, .details, .modify, .nextDay { display: none; }
+  .offer {
+    page-break-inside: avoid;
+    margin-bottom: 20px;
+  }
+  .accordionContent { display: block !important; }
 }
 
 /* end */
+.trainImageContainer { width: 200px; max-width: 40%; margin-top: 8px; border-radius:6px; overflow:hidden; background: linear-gradient(180deg, rgba(255,255,255,0.6), rgba(240,255,240,0.6)); padding:4px; box-shadow: inset 0 0 0 1px rgba(31,111,47,0.03); }
+.trainImageContainer img { display:block; width:100%; height:72px; object-fit:cover; border-radius:4px; }
+/* responsive adjustments */
+@media (max-width: 480px) {
+  .trainImageContainer { width: 100px; max-width: 30%; }
+  .trainImageContainer img { height:28px; }
+}

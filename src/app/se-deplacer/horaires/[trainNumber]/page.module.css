@@ -1,0 +1,201 @@
+/* HERO */
+.hero {
+  height: 260px;
+  background: #083632;
+}
+
+.container {
+  max-width: 1200px;
+  margin: -120px auto 0;
+  padding: 0 24px;
+}
+
+/* CARD HEADER */
+.cardHeader {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0;
+}
+
+.cardInner {
+  background: transparent;
+  border: 1px solid #ffffff;
+  border-radius: 18px;
+  padding: 24px 32px 0 32px;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 900px;
+  min-width: 700px;
+  margin: 0 auto;
+  font-family: 'Inter', Arial, sans-serif;
+  font-size: 19px;
+  font-weight: 500;
+  box-sizing: border-box;
+  gap: 0;
+}
+.cardHeaderRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  width: 100%;
+  gap: 32px;
+}
+.cardLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  font-size: 20px;
+  color: #eaffd0;
+}
+
+/* route text (origin → destination) */
+.routeText {
+  margin-top: 6px;
+  font-size: 15px;
+  color: #eaffd0;
+  font-weight: 600;
+}
+
+.cardRight {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 32px;
+  color: #eaffd0;
+  font-size: 18px;
+  font-weight: 500;
+}
+.bike {
+  margin: 12px 0 0 0;
+  color: #eaffd0;
+  font-size: 17px;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* TIMELINE */
+.timelineSection {
+  background: #fff;
+  margin-top: 56px;
+  padding: 64px 0 0 0;
+  border-radius: 0 0 12px 12px;
+  min-height: 420px;
+}
+.timelineInner {
+  max-width: 700px;
+  margin: 0 auto;
+  position: relative;
+  padding-left: 0;
+  overflow: visible; /* ensure children can appear above the absolute bar */
+}
+/* vertical line: tuned to align with pill centers */
+.timelineInner::before {
+  content: '';
+  position: absolute;
+  /* align with time pill + gap + timelineCol center */
+  /* align bar center with dot center: dot center = pill width (58) + pill margin-right (52) + timelineCol/2 (16) = 126 */
+  /* bar width is 10px so left = center - 5 = 121 */
+  left: 121px;
+  top: 40px;   /* start a bit below the first pill center */
+  bottom: 40px; /* end a bit above the last pill center */
+  width: 10px;
+  background: #0a5c11;
+  border-radius: 8px;
+  z-index: 0;
+}
+.stopRow {
+  display: flex;
+  align-items: center; /* center vertically so pill and dot align */
+  position: relative;
+  min-height: 88px;
+  margin-bottom: 0;
+  z-index: 1;
+}
+/* time pill: positioned to the left, rounded */
+.timePill {
+  flex: 0 0 auto;
+  width: 58px;
+  height: 36px;
+  background: #0e6056;
+  color: #fff;
+  border-radius: 18px;
+  font-weight: 800;
+  font-size: 16px;
+  text-align: center;
+  line-height: 36px;
+  margin-right: 52px; /* distance between pill and vertical line */
+  font-family: 'Inter', Arial, sans-serif;
+  box-shadow: none;
+  border: none;
+  z-index: 2;
+}
+.timelineCol {
+  width: 32px; /* spacer for the dot and visual gap */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  margin-right: 20px; /* gap between line and stop name */
+  z-index: 2;
+}
+.timelineDot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 4px solid #0a5c11; /* green border */
+  background: #fff;
+  box-sizing: border-box;
+  z-index: 3;
+}
+.stopNameCol {
+  grid-column: 3 / 4;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative; /* ensure z-index works */
+  z-index: 5; /* keep names above line and dots */
+}
+.stopName {
+  font-weight: 900;
+  color: #0a5c4f !important; /* ensure visible against backgrounds */
+  font-size: 22px;
+  font-family: 'Inter', Arial, sans-serif;
+  margin: 0 0 6px 0;
+}
+.stopExtra {
+  color: #6b8b7f;
+  font-size: 14px;
+  font-family: 'Inter', Arial, sans-serif;
+  margin-top: 4px;
+}
+/* vertical spacing between stops in the design */
+.stopRow + .stopRow { margin-top: 48px; }
+
+/* small adjustments for first and last to align dot within line */
+.timelineInner > .stopRow:first-child .timelineDot { margin-top: -2px; }
+.timelineInner > .stopRow:last-child .timelineDot { margin-bottom: -2px; }
+
+/* Responsive tweaks */
+@media (max-width: 900px) {
+  .cardInner { min-width: 0; max-width: 98vw; padding: 16px; font-size: 16px; }
+  .timelineSection { padding: 32px 0 0 0; }
+  .timelineInner { max-width: 98vw; }
+  .timelineInner::before {
+    /* responsive: dot center = pill width (44) + pill margin-right (36) + timelineCol/2 (14) = 94
+       bar width is 8px so left = center - 4 = 90 */
+    left: 90px; width: 8px; top: 28px; bottom: 28px;
+  }
+  .timePill { width: 44px; height: 28px; font-size: 15px; margin-right: 36px; }
+  .timelineCol { width: 28px; margin-right: 12px; }
+  .timelineDot { width: 14px; height: 14px; border-width: 3px; }
+  .stopName { font-size: 18px; }
+  .stopExtra { font-size: 14px; }
+}
+
+.visuallyHidden { position: absolute !important; height: 1px; width: 1px; overflow: hidden; clip: rect(1px, 1px, 1px, 1px); white-space: nowrap; }

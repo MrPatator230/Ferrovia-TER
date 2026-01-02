@@ -10,8 +10,6 @@ export default function StationForm({ editStation, onClose, onSuccess }) {
   const typeRef = React.useRef(null);
   const quaiNomRef = React.useRef(null);
   const quaiDistanceRef = React.useRef(null);
-  const transportTypeRef = React.useRef(null);
-  const transportCouleurRef = React.useRef(null);
 
   const [nom, setNom] = useState('');
   const [typeGare, setTypeGare] = useState('ville');
@@ -55,6 +53,7 @@ export default function StationForm({ editStation, onClose, onSuccess }) {
       setServices(editStation.service || []);
       setQuais(editStation.quais || []);
       setTransportsCommun(editStation.transports_commun || []);
+      console.log('[StationForm] init transportsCommun from editStation:', editStation.transports_commun);
       setQuaiNom('');
       setQuaiDistance('');
       setTransportType('bus');
@@ -157,8 +156,7 @@ export default function StationForm({ editStation, onClose, onSuccess }) {
       if (codeNode) codeNode.value = '';
       const corrNode = formRef.current && formRef.current.querySelector('textarea[data-field="correspondance"]');
       if (corrNode) corrNode.value = '';
-      if (transportTypeRef.current) transportTypeRef.current.value = 'bus';
-      if (transportCouleurRef.current) transportCouleurRef.current.value = '#0b7d48';
+      // transportType & transportCouleur sont des states contrôlés — mis à jour ci-dessus
       if (formRef.current) {
         const nodes = formRef.current.querySelectorAll('wcs-checkbox[data-service]');
         nodes.forEach(n => n.checked = false);
@@ -198,15 +196,21 @@ export default function StationForm({ editStation, onClose, onSuccess }) {
   }
 
   function handleAddTransport() {
-    const typeVal = transportTypeRef.current ? transportTypeRef.current.value : transportType;
-    const couleurVal = transportCouleurRef.current ? transportCouleurRef.current.value : transportCouleur;
+    // Utiliser les states contrôlés pour créer le transport
+    const typeVal = transportType;
+    const couleurVal = transportCouleur;
     const t = { type: typeVal, couleur: typeVal === 'train' ? null : couleurVal };
-    setTransportsCommun([...transportsCommun, t]);
+    setTransportsCommun(prev => [...prev, t]);
   }
 
   function handleRemoveTransport(index) {
-    setTransportsCommun(transportsCommun.filter((_, i) => i !== index));
+    setTransportsCommun(prev => prev.filter((_, i) => i !== index));
   }
+
+  // tracer les changements d'état pour debug
+  useEffect(() => {
+    console.log('[StationForm] transportsCommun state updated:', transportsCommun);
+  }, [transportsCommun]);
 
   async function handleSubmit(e) {
     e && e.preventDefault && e.preventDefault();
@@ -240,21 +244,37 @@ export default function StationForm({ editStation, onClose, onSuccess }) {
     }
 
     setLoading(true);
-    const isEditing = editStation && editStation.id;
+    // Utiliser prioritairement le `code` de la gare (original) comme identifiant
+    // fallback : id numérique ou _id
+    const originalIdentifier = editStation && (editStation.code || editStation.id || editStation._id);
+    const isEditing = Boolean(originalIdentifier);
 
     try {
+      // Normaliser les transports pour s'assurer d'envoyer un tableau d'objets { type, couleur }
+      const normalizedTransports = Array.isArray(transportsCommun) ? transportsCommun.map(t => {
+        if (!t) return null;
+        if (typeof t === 'string') return { type: t, couleur: null };
+        return { type: String(t.type || ''), couleur: (typeof t.couleur === 'undefined' ? null : t.couleur) };
+      }).filter(Boolean) : [];
+
       const payload = {
         nom: nomVal,
         type_gare: typeVal,
         service: servicesVal,
         quais,
-        transports_commun: transportsCommun
-        ,
+        transports_commun: normalizedTransports,
         code: codeVal || null,
         correspondance: corrVal
       };
 
-      const url = isEditing ? `/api/admin/stations/${editStation.id}` : '/api/admin/stations';
+      // DEBUG: log complet du payload JSON envoyé
+      try {
+        console.log('[StationForm] payload JSON:', JSON.stringify(payload));
+      } catch (e) {
+        console.log('[StationForm] payload (non-serializable):', payload);
+      }
+
+      const url = isEditing ? `/api/admin/stations/${originalIdentifier}` : '/api/admin/stations';
       const method = isEditing ? 'PUT' : 'POST';
 
       const res = await fetch(url, {
@@ -263,14 +283,20 @@ export default function StationForm({ editStation, onClose, onSuccess }) {
         body: JSON.stringify(payload)
       });
 
+      // Lire la réponse comme texte d'abord (plus tolérant), puis tenter JSON
+      const resText = await res.text();
+      let resData = null;
+      try { resData = resText ? JSON.parse(resText) : null; } catch (e) { resData = resText; }
+      console.log('[StationForm] fetch response', { status: res.status, data: resData });
+
       if (!res.ok) {
-        const err = await res.json();
-        setMessage(err.error || 'Erreur lors de l\'enregistrement');
+        // si resData est un objet et contient .error, l'afficher
+        const errMsg = (resData && typeof resData === 'object' && resData.error) ? resData.error : 'Erreur lors de l\'enregistrement';
+        setMessage(errMsg);
       } else {
-        const data = await res.json();
         setMessage(isEditing ? 'Gare modifiée avec succès' : 'Gare créée avec succès');
         resetForm();
-        if (onSuccess) onSuccess(data);
+        if (onSuccess) onSuccess(resData);
         setTimeout(() => { if (onClose) onClose(); }, 800);
       }
     } catch (err) {
@@ -282,11 +308,13 @@ export default function StationForm({ editStation, onClose, onSuccess }) {
   }
 
   async function handleDeleteStation() {
-    if (!editStation || !editStation.id) return;
+    // utiliser prioritairement le code pour la suppression également
+    const idToDelete = editStation && (editStation.code || editStation.id || editStation._id);
+    if (!editStation || !idToDelete) return;
     if (!confirm(`Êtes-vous sûr de vouloir supprimer la gare "${editStation.nom}" ?`)) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/stations/${editStation.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/stations/${idToDelete}`, { method: 'DELETE' });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         setMessage(err.error || 'Erreur lors de la suppression');
@@ -392,16 +420,16 @@ export default function StationForm({ editStation, onClose, onSuccess }) {
           ))}
 
           <div className={styles.listItem}>
-            <wcs-select data-field="transport-type" ref={transportTypeRef} value={transportType} style={{ flex: 1 }}>
+            {/* Utiliser des contrôles natifs pour fiabilité */}
+            <select data-field="transport-type" value={transportType} onChange={(e) => setTransportType(e.target.value)} style={{ flex: 1 }}>
               {transportsDisponibles.map(t => (
-                <wcs-select-option key={t.type} value={t.type}>{t.label}</wcs-select-option>
+                <option key={t.type} value={t.type}>{t.label}</option>
               ))}
-            </wcs-select>
-            {/* Color picker - wcs n'a pas forcément un composant color, on peut utiliser wcs-input type=color */}
+            </select>
             {transportType !== 'train' && (
-              <wcs-input data-field="transport-couleur" ref={transportCouleurRef} type="color" value={transportCouleur} style={{ width: '64px' }} />
+              <input data-field="transport-couleur" type="color" value={transportCouleur} onChange={(e) => setTransportCouleur(e.target.value)} style={{ width: '64px' }} />
             )}
-            <wcs-button mode="clear" shape="small" onClick={handleAddTransport} type="button"><wcs-mat-icon icon="add" /></wcs-button>
+            <button type="button" onClick={handleAddTransport} style={{ marginLeft: 8 }} aria-label="Ajouter transport">+</button>
           </div>
         </div>
       </div>
@@ -409,7 +437,7 @@ export default function StationForm({ editStation, onClose, onSuccess }) {
       {/* Actions */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1.5rem' }}>
         <wcs-button mode="clear" onClick={onClose} type="button" disabled={loading}>Annuler</wcs-button>
-        {editStation && editStation.id && (
+        {(editStation && (editStation.id || editStation._id)) && (
           <wcs-button mode="danger" type="button" onClick={handleDeleteStation} disabled={loading}>
             Supprimer
           </wcs-button>

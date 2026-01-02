@@ -34,7 +34,7 @@ export default function MaterielsPage(){
 
     return () => {
       if (createButton && createModal) {
-        createButton.removeEventListener('click', handleOpenEditModal);
+        createButton.removeEventListener('click', handleCreateClick);
       }
       window.removeEventListener('open-edit-modal', handleOpenEditModal);
     };
@@ -49,6 +49,9 @@ export default function MaterielsPage(){
         </div>
       </div>
 
+      {/* hidden fallback trigger for edit modal to satisfy wcs-modal requirement */}
+      <button id="edit-materiel-trigger" style={{ display: 'none' }} aria-hidden="true" />
+
       <div className={styles.listWrap}>
         <MaterialList />
       </div>
@@ -62,7 +65,7 @@ export default function MaterielsPage(){
       </wcs-modal>
 
       {/* Modal d'édition */}
-      <wcs-modal ref={editModalRef} data-edit-modal show-close-button size="m">
+      <wcs-modal ref={editModalRef} data-edit-modal modal-trigger-controls-id="edit-materiel-trigger" show-close-button size="m">
         <div slot="header">Modifier le matériel roulant</div>
         <div style={{ padding: 12 }}>
           <MaterialForm editMateriel={editMateriel} />

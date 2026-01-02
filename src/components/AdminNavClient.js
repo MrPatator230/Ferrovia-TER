@@ -94,6 +94,14 @@ export default function AdminNavClient() {
               </a>
           </wcs-nav-item>
 
+          {/* Nouvelle entrée: Perturbations */}
+          <wcs-nav-item>
+              <a href="/espace/admin/perturbations" onClick={(e) => handleNavigate(e, '/espace/admin/perturbations')} className={isActive('/espace/admin/perturbations') ? 'active' : ''}>
+                  <wcs-mat-icon icon="warning"></wcs-mat-icon>
+                  <span>Perturbations</span>
+              </a>
+          </wcs-nav-item>
+
           {/* Item de déconnexion */}
           <wcs-nav-item style={{ marginTop: 'auto' }}>
               <button onClick={handleLogout} style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>

@@ -8,6 +8,7 @@ import TrafficInfo from "../components/TrafficInfo";
 import SubscriptionCard from "../components/SubscriptionCard";
 import PromoCard from "../components/PromoCard";
 import NextDepartures from "../components/NextDepartures";
+import PerturbationBanners from "../components/PerturbationBanners";
 
 export default function Home() {
   return (
@@ -30,6 +31,11 @@ export default function Home() {
           {/* Info trafic */}
           <div>
             <TrafficInfo />
+          </div>
+
+          {/* Perturbations */}
+          <div>
+            <PerturbationBanners />
           </div>
 
           {/* S'abonner */}
@@ -102,6 +108,10 @@ export default function Home() {
 
               <div className="card" style={{ padding: 0, borderRadius: 8 }}>
                 <SubscriptionCard />
+              </div>
+
+              <div className="card" style={{ padding: 0, borderRadius: 8 }}>
+                <PerturbationBanners />
               </div>
             </div>
           </div>

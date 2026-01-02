@@ -13,6 +13,8 @@ function formatHoraireRow(r) {
   if (Array.isArray(row.stops)) {
     row.stops = row.stops.map((s) => ({
       ...s,
+      // Normaliser station_id en Number pour comparaisons fiables
+      station_id: s && s.station_id != null ? Number(s.station_id) : (s && s.station_id === 0 ? 0 : null),
       depart_time: s && s.depart_time ? String(s.depart_time).slice(0, 5) : null,
       arrivee_time: s && s.arrivee_time ? String(s.arrivee_time).slice(0, 5) : null,
     }));
@@ -31,6 +33,22 @@ export async function GET(request) {
     const type = (searchParams.get('type') || '').toLowerCase(); // 'depart' | 'arrivee'
     const stationId = stationIdParam && !Number.isNaN(Number(stationIdParam)) ? parseInt(stationIdParam, 10) : null;
     if (!stationId) return NextResponse.json({ error: 'Paramètre id invalide' }, { status: 400 });
+
+    // Récupérer le code de la station pour matcher aussi les stops qui stockent des station_code
+    let stationCode = null;
+    try {
+      const { data: stationRow, error: stationErr } = await pool.client
+        .from('stations')
+        .select('id,code')
+        .eq('id', stationId)
+        .limit(1)
+        .single();
+      if (!stationErr && stationRow && stationRow.code) {
+        stationCode = String(stationRow.code).toUpperCase();
+      }
+    } catch (e) {
+      // ignore - on continue sans stationCode
+    }
 
     // Utiliser l'API Supabase directement
     let query = pool.client
@@ -87,7 +105,40 @@ export async function GET(request) {
       .filter(h => {
         // Vérifier si stationId est dans stops
         if (!Array.isArray(h.stops)) return false;
-        return h.stops.some(s => s.station_id === stationId);
+        // station_id a été normalisé dans formatHoraireRow
+
+        return h.stops.some(s => {
+          try {
+            if (s == null) return false;
+
+            // si stop est un primitif
+            if (typeof s === 'string' || typeof s === 'number') {
+              if (String(s) === String(stationId)) return true;
+              if (stationCode && String(s).toUpperCase() === stationCode) return true;
+              return false;
+            }
+
+            // check numeric station_id / id
+            const sid = s.station_id != null ? Number(s.station_id)
+                      : (s.id != null ? Number(s.id) : null);
+            if (sid != null && Number(sid) === Number(stationId)) return true;
+
+            // nested station object
+            if (s.station && typeof s.station === 'object') {
+              if (s.station.id != null && Number(s.station.id) === Number(stationId)) return true;
+              const nestedCode = s.station.code || s.station.station_code || s.station.stationCode || null;
+              if (nestedCode && stationCode && String(nestedCode).toUpperCase() === stationCode) return true;
+            }
+
+            // station_code / code fields
+            const scode = s.station_code || s.code || s.stationCode || null;
+            if (scode && stationCode && String(scode).toUpperCase() === stationCode) return true;
+
+            return false;
+          } catch (e) {
+            return false;
+          }
+        });
       });
 
     // Fusionner sans doublons
@@ -102,13 +153,30 @@ export async function GET(request) {
     if (type === 'depart') {
       mapped = allHoraires.filter((h) => {
         if (h.depart_station_id === stationId) return true;
-        const s = Array.isArray(h.stops) ? h.stops.find(st => st.station_id === stationId) : null;
+        const s = Array.isArray(h.stops) ? h.stops.find(st => {
+          // st peut être objet ou primitif
+          if (st == null) return false;
+          if (typeof st === 'string' || typeof st === 'number') return String(st) === String(stationId) || (stationCode && String(st).toUpperCase() === stationCode);
+          if (st.station_id != null && Number(st.station_id) === Number(stationId)) return true;
+          if (st.station && st.station.id != null && Number(st.station.id) === Number(stationId)) return true;
+          const sc = st.station_code || st.code || st.stationCode || null;
+          if (sc && stationCode && String(sc).toUpperCase() === stationCode) return true;
+          return false;
+        }) : null;
         return !!(s && s.depart_time);
       });
     } else if (type === 'arrivee') {
       mapped = allHoraires.filter((h) => {
         if (h.arrivee_station_id === stationId) return true;
-        const s = Array.isArray(h.stops) ? h.stops.find(st => st.station_id === stationId) : null;
+        const s = Array.isArray(h.stops) ? h.stops.find(st => {
+          if (st == null) return false;
+          if (typeof st === 'string' || typeof st === 'number') return String(st) === String(stationId) || (stationCode && String(st).toUpperCase() === stationCode);
+          if (st.station_id != null && Number(st.station_id) === Number(stationId)) return true;
+          if (st.station && st.station.id != null && Number(st.station.id) === Number(stationId)) return true;
+          const sc = st.station_code || st.code || st.stationCode || null;
+          if (sc && stationCode && String(sc).toUpperCase() === stationCode) return true;
+          return false;
+        }) : null;
         return !!(s && s.arrivee_time);
       });
     } else {
@@ -121,4 +189,3 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }
-

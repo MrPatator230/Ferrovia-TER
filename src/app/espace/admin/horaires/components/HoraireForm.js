@@ -314,16 +314,21 @@ export default function HoraireForm({ editHoraire, onSuccess, onCancel }){
     finally{ setLoadingStations(false); }
   }
 
-  async function fetchMateriels(){
+    async function fetchMateriels(){
     setLoadingMateriels(true);
     try{
       const res = await fetch('/api/admin/materiels');
       if (!res.ok) { setMaterielsOptions([]); return; }
       const data = await res.json();
-      setMaterielsOptions(data || []);
+      // L'API peut renvoyer soit un tableau direct, soit { items: [...] }
+      let items = [];
+      if (Array.isArray(data)) items = data;
+      else if (data && Array.isArray(data.items)) items = data.items;
+      else items = [];
+      setMaterielsOptions(items);
     }catch(e){ console.error(e); setMaterielsOptions([]); }
     finally{ setLoadingMateriels(false); }
-  }
+    }
 
   async function fetchLignes(){
     setLoadingLignes(true);

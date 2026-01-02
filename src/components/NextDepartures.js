@@ -10,6 +10,7 @@ export default function NextDepartures() {
   const [departures, setDepartures] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [nameToCode, setNameToCode] = useState({});
 
   // si stations est mis à jour, sélectionner la première gare si aucune sélection actuelle
   useEffect(() => {
@@ -17,6 +18,32 @@ export default function NextDepartures() {
       setSelectedStation(stations[0]);
     }
   }, [stations, selectedStation]);
+
+  // charger la table des gares pour obtenir les codes par nom (utile pour afficher les quais attribués)
+  useEffect(() => {
+    let mounted = true;
+    async function loadStations() {
+      try {
+        const res = await fetch('/api/admin/stations', { cache: 'no-store' });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!mounted) return;
+        if (Array.isArray(data)) {
+          const map = {};
+          data.forEach(s => {
+            if (!s) return;
+            const name = (s.nom || s.name || '').toString().trim();
+            if (name) map[name] = s.code ? String(s.code).toUpperCase() : null;
+          });
+          setNameToCode(map);
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    loadStations();
+    return () => { mounted = false; };
+  }, []);
 
   // Helper: retourne true si l'horaire (format 'HH:mm' ou 'H:mm') n'est pas encore passé aujourd'hui
   function isTimeNotPassed(timeStr) {
@@ -201,13 +228,51 @@ export default function NextDepartures() {
                   </div>
                 </div>
 
-                {/* Platform column: si voie fournie */}
+                {/* Platform column: si voie fournie, afficher badge attribué si présent */}
                 <div className={styles.platformColumn}>
-                  {d.voie || d.platform || d.platforme || d.platform === '-' ? (
-                    <div className={styles.platform}>{d.voie || d.platform || d.platforme || (d.platform === '-' ? '-' : '')}</div>
-                  ) : (
-                    <div className={styles.platform}>-</div>
-                  )}
+                  {
+                    (() => {
+                      try {
+                        const stationCode = nameToCode && nameToCode[selectedStation] ? nameToCode[selectedStation] : null;
+                        const attributionQuais = (d && typeof d.attribution_quais === 'object' && d.attribution_quais !== null) ? d.attribution_quais : {};
+
+                        // si nous avons un code de gare connu pour la sélection, prioriser l'attribution
+                        if (stationCode && attributionQuais && attributionQuais[stationCode]) {
+                          return (
+                            <div className={styles.platform}>
+                              <span className={styles.platformBadge}>{String(attributionQuais[stationCode])}</span>
+                            </div>
+                          );
+                        }
+
+                        // sinon tenter de trouver un stop correspondant et vérifier son code
+                        if (Array.isArray(d.stops)) {
+                          const stop = d.stops.find(s => {
+                            if (!s) return false;
+                            const name = (s.station_name || s.nom || '').toString().trim().toLowerCase();
+                            return name && name === String(selectedStation).trim().toLowerCase();
+                          });
+                          if (stop) {
+                            const scode = stop.station_code ? String(stop.station_code).toUpperCase() : null;
+                            if (scode && attributionQuais && attributionQuais[scode]) {
+                              return (
+                                <div className={styles.platform}>
+                                  <span className={styles.platformBadge}>{String(attributionQuais[scode])}</span>
+                                </div>
+                              );
+                            }
+                          }
+                        }
+
+                        // fallback: afficher la voie fournie dans l'horaire
+                        return (
+                          <div className={styles.platform}>{d.voie || d.platform || d.platforme || (d.platform === '-' ? '-' : '-')}</div>
+                        );
+                      } catch (e) {
+                        return <div className={styles.platform}>-</div>;
+                      }
+                    })()
+                  }
                 </div>
 
                 <div className={styles.chevron}>

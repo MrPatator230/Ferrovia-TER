@@ -122,6 +122,12 @@ export default function HorairesPage() {
 
           {/* Barre d'actions */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+            {activeTab === 'liste' && (
+              <wcs-button mode="stroked" onClick={() => window.location.href = '/espace/admin/horaires/imports'}>
+                <wcs-mat-icon icon="upload_file" size="s"></wcs-mat-icon>
+                Importer depuis Excel
+              </wcs-button>
+            )}
             <wcs-button mode="stroked" onClick={activeTab === 'services-annuels' ? openCreateServiceAnnuel : openCreateHoraire}>
               <wcs-mat-icon icon="add" size="s"></wcs-mat-icon>
               {activeTab === 'services-annuels' ? 'Nouveau SA' : 'Créer Horaire'}

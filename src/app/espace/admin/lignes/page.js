@@ -90,7 +90,10 @@ export default function LignesPage() {
         </wcs-card-body>
       </wcs-card>
 
-      <wcs-modal ref={modalRef} show-close-button size="l" onWcsDialogClosed={handleClose}>
+      {/* hidden fallback trigger for lignes modal */}
+      <button id="lignes-modal-trigger-fallback" style={{ display: 'none' }} aria-hidden="true" />
+
+      <wcs-modal ref={modalRef} modal-trigger-controls-id="lignes-modal-trigger-fallback" show-close-button size="l" onWcsDialogClosed={handleClose}>
         <div slot="header">{editLigne ? 'Modifier une ligne' : 'Créer une ligne'}</div>
         <div style={{ minHeight: 400, maxHeight: '70vh', overflow: 'auto', backgroundColor: '#fff', padding: 12 }}>
           <LigneForm key={modalKey} editLigne={editLigne} onSuccess={handleSuccess} onCancel={handleClose} />

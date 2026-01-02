@@ -944,7 +944,7 @@ export default function DiffusionInfos() {
       </wcs-modal>
 
       {/* MODAL ACTUS */}
-      <wcs-modal ref={actuModalRef} show-close-button size="l" onWcsDialogClosed={closeActuModal}>
+      <wcs-modal ref={actuModalRef} modal-trigger-controls-id="actu-modal-trigger-fallback" show-close-button size="l" onWcsDialogClosed={closeActuModal}>
         <div slot="header">{editingItem ? 'Modifier' : 'Créer'} une actualité</div>
         <div style={{ padding: 12 }}>
           <form ref={actuFormRef} onSubmit={saveActu} className={styles.modalForm}>
@@ -1033,7 +1033,7 @@ export default function DiffusionInfos() {
       </wcs-modal>
 
       {/* MODAL ÉVÉNEMENTS */}
-      <wcs-modal ref={eventModalRef} show-close-button size="l" onWcsDialogClosed={closeEventModal}>
+      <wcs-modal ref={eventModalRef} modal-trigger-controls-id="event-modal-trigger-fallback" show-close-button size="l" onWcsDialogClosed={closeEventModal}>
         <div slot="header">{editingItem ? 'Modifier' : 'Créer'} un événement</div>
         <div style={{ padding: 12 }}>
           <form ref={eventFormRef} onSubmit={saveEvent} className={styles.modalForm}>
@@ -1086,6 +1086,10 @@ export default function DiffusionInfos() {
           </form>
         </div>
       </wcs-modal>
+
+      {/* Hidden fallback triggers for actu and event modals to satisfy wcs-modal */}
+      <button id="actu-modal-trigger-fallback" style={{ display: 'none' }} aria-hidden="true" />
+      <button id="event-modal-trigger-fallback" style={{ display: 'none' }} aria-hidden="true" />
     </div>
   );
 }

@@ -160,6 +160,97 @@
 .stopHeadName{ font-weight:700; }
 .stopHeadPlatform{ text-align:center; font-weight:700; }
 
+/* Styles pour affichage spécifique quand un horaire est en retard */
+.timeOriginal {
+  display: block;
+  text-decoration: line-through;
+  color: #6b6b6b; /* gris barré */
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1;
+}
+.timeEstimated {
+  display: block;
+  color: #d32f2f; /* rouge d'alerte */
+  font-weight: 800;
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+/* Banner full-width under the row to show delay message */
+.delayBanner {
+  /* utiliser la couleur de la "ligne retardée" comme arrière-plan du bandeau */
+  background: #fff4e6; /* couleur identique à l'ancienne ligne */
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #6b3b1a; /* texte brun/orange foncé */
+  font-weight: 700;
+  font-size: 16px;
+}
+.clockIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #fff2e6;
+  color: #ffb74d;
+  box-shadow: 0 0 0 6px rgba(255,183,77,0.06);
+}
+
+/* petit chevron (triangle) matching the banner background */
+.delayBanner:before{
+  content: '';
+  width: 0; height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid #fff4e6;
+  position: relative;
+  top: -8px;
+  left: 18px;
+}
+
+/* utility: style pour bord gauche orange sur la row (déjà utilisé) */
+.rowDelayed { }
+
+/* Styles pour le bloc d'information sous le nom de la gare (retard/cause) */
+.stopInfo{
+  margin-top:6px;
+  padding-left: 6px; /* espace entre le nom de la gare et le bloc */
+}
+.stopInfoHeader{
+  display:flex;
+  align-items:flex-start; /* icône en haut, titre à droite */
+  gap:10px;
+}
+.stopInfoIcon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  background: #fff2e6; /* halo léger */
+  color: #ffb74d; /* icône orange */
+  box-shadow: 0 0 0 6px rgba(255,183,77,0.06);
+  flex: 0 0 34px;
+}
+.stopInfoTitle{
+  font-size:18px;
+  color: #1e2a20;
+  font-weight:700;
+  line-height:1.0;
+  margin-top:2px; /* pour aligner verticalement avec l'icône */
+}
+.stopInfoCause{
+  margin-top:6px;
+  color:#6b7a6f;
+  font-size:14px;
+}
+
 @media (max-width:600px){
   .accordionContent{ padding: 18px 12px 16px; background: #e7f0c5; /* vert plus proche */ }
   .accordionHeader h3{ font-size:20px; color: var(--text-green); }
@@ -193,4 +284,49 @@
   }
 
   :root{ --row-pad: 6px; --dot-size: 9px; --dot-margin: 4px; }
+}
+
+/* Styles pour horaire supprimé */
+.rowCancelled { }
+.cancelledText { text-decoration: line-through; color: #b71c1c; font-weight:800; }
+.cancelBanner { background: #fdecea; padding: 12px 18px; display:flex; gap:12px; align-items:center; color:#b71c1c; font-weight:700; }
+.cancelIcon { color:#b71c1c; }
+
+/* Styles pour la bannière 'Modifié' */
+.modifyBanner {
+  background: #eef6ff; /* bleu pâle pour modification */
+  padding: 12px 18px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  color: #1a4fb0; /* bleu foncé */
+  font-weight:700;
+  font-size:16px;
+}
+.modifyIcon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  border-radius:50%;
+  background: #f0f6ff;
+  color: #1a4fb0;
+  box-shadow: 0 0 0 6px rgba(26,79,176,0.04);
+}
+
+/* Style pour les arrêts supprimés dans la liste: opacité réduite et interdire la mise en avant */
+.stopRowSuppressed{
+  opacity: 0.6;
+}
+
+/* Badge pour nouvelle gare de destination */
+.newTerminusBadge{
+  margin-left:8px;
+  font-size:12px;
+  background:#e8f3ff;
+  color:#054a9b;
+  padding:2px 8px;
+  border-radius:12px;
+  font-weight:700;
 }

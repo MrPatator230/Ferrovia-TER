@@ -1,8 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Configuration Supabase
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kkygdncjzytnndupzfjg.supabase.co';
+// NOTE: nous conservons une valeur par défaut placeholder pour la compatibilité,
+// mais l'absence de NEXT_PUBLIC_SUPABASE_URL provoquera souvent des erreurs DNS (ENOTFOUND).
+const DEFAULT_SUPABASE_URL = 'https://kkygdncjzytnndupzfjg.supabase.co';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY || 'sb_publishable_m_5dWRQ6LLsIdIxOG-CEUg_YNhcKmEq';
+
+// Avertissement explicite si la variable d'environnement n'est pas définie
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  // message explicite pour faciliter le debug local — ne pas lever d'erreur pour ne pas casser dev server
+  console.warn('[db_horaires] WARNING: NEXT_PUBLIC_SUPABASE_URL is not set. Using placeholder URL', DEFAULT_SUPABASE_URL);
+  console.warn('[db_horaires] Tip: set NEXT_PUBLIC_SUPABASE_URL in your .env.local or environment to your Supabase project URL (e.g. https://<project>.supabase.co)');
+}
 
 // Créer le client Supabase
 const supabase = createClient(supabaseUrl, supabaseKey, {

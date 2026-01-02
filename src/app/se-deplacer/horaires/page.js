@@ -143,11 +143,20 @@ export default function HorairesSearchPage() {
   }
 
   function buildSearchObject() {
+    // Helper to format date as YYYY-MM-DD in local timezone (not UTC)
+    function formatDateLocal(date) {
+      if (!date) return null;
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
     return {
       from: fromSelected ? { nom: fromSelected.nom, code: fromSelected.code || null } : { nom: fromQuery || null, code: null },
       to: toSelected ? { nom: toSelected.nom, code: toSelected.code || null } : { nom: toQuery || null, code: null },
-      depart: fromDate ? { date: fromDate.toISOString().slice(0,10), time: fromTime } : null,
-      retour: toDate ? { date: toDate.toISOString().slice(0,10), time: toTimeSelected } : null,
+      depart: fromDate ? { date: formatDateLocal(fromDate), time: fromTime } : null,
+      retour: toDate ? { date: formatDateLocal(toDate), time: toTimeSelected } : null,
       passengers: { count: 1, card: 'sans' }
     };
   }

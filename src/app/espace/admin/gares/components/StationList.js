@@ -159,6 +159,13 @@ export default function StationList({ onEdit, refreshTrigger }) {
     // ouvrir la modale (après un court délai pour laisser le composant se monter)
     setTimeout(() => {
       try {
+        // assigner un id unique au control qui a ouvert la modale
+        const triggerId = `open-quais-btn-${station.id}`;
+        const triggerBtn = document.getElementById(triggerId);
+        if (triggerBtn) {
+          // passer l'id comme contrôle lié à la modale (WCS attend cet attribut)
+          modalRef.current && modalRef.current.setAttribute('modal-trigger-controls-id', triggerId);
+        }
         modalRef.current && modalRef.current.setAttribute('show', '');
       } catch (e) {}
     }, 50);
@@ -314,7 +321,7 @@ export default function StationList({ onEdit, refreshTrigger }) {
           {pagedStations.map(station => (
             <React.Fragment key={station.id}>
               <wcs-grid-custom-cell slot={`service-${station.id}`} column-id="service" row-id={station.id}>
-                {station.service && station.service.length > 0 ? (
+                {Array.isArray(station.service) && station.service.length > 0 ? (
                   <div style={{ display: 'flex', gap: 6 }}>
                     {station.service.map((s, idx) => (
                       <wcs-badge key={idx} color="primary">{s}</wcs-badge>
@@ -327,7 +334,7 @@ export default function StationList({ onEdit, refreshTrigger }) {
 
               <wcs-grid-custom-cell slot={`quais-${station.id}`} column-id="quais" row-id={station.id}>
                 {station.quais && station.quais.length > 0 ? (
-                  <wcs-button mode="clear" shape="small" onClick={() => openQuaisModal(station)} title={`Voir ${station.quais.length} quai(s)`}>
+                  <wcs-button id={`open-quais-btn-${station.id}`} mode="clear" shape="small" onClick={() => openQuaisModal(station)} title={`Voir ${station.quais.length} quai(s)`}>
                     <wcs-mat-icon icon="view_list" size="s" />
                     <span style={{ marginLeft: 8 }}>{station.quais.length} quai(s)</span>
                   </wcs-button>
@@ -411,7 +418,7 @@ export default function StationList({ onEdit, refreshTrigger }) {
               <div className={styles.detailSection}>
                 <div className={styles.detailTitle}>Services</div>
                 <div className={styles.serviceList}>
-                  {station.service && station.service.length > 0 ? (
+                  {Array.isArray(station.service) && station.service.length > 0 ? (
                     station.service.map((service, idx) => (
                       <wcs-badge key={idx} color="primary">
                         {service}
@@ -516,6 +523,8 @@ export default function StationList({ onEdit, refreshTrigger }) {
   // Rendu principal avec contrôles
   return (
     <div>
+      {/* hidden fallback trigger required by wcs-modal to avoid console warning */}
+      <button id="open-quais-btn-fallback" style={{ display: 'none' }} aria-hidden="true" />
       {/* Controls */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -553,7 +562,7 @@ export default function StationList({ onEdit, refreshTrigger }) {
       {viewMode === 'table' ? renderTable() : renderCards()}
 
       {/* Modal WCS affichant tous les quais d'une gare */}
-      <wcs-modal ref={modalRef} show-close-button size="m" onWcsDialogClosed={closeModal}>
+      <wcs-modal ref={modalRef} modal-trigger-controls-id="open-quais-btn-fallback" show-close-button size="m" onWcsDialogClosed={closeModal}>
         <div slot="header">{modalStation ? `Quais — ${modalStation.nom}` : 'Quais'}</div>
         <div style={{ padding: 12, minWidth: 320, maxHeight: '60vh', overflow: 'auto', backgroundColor: '#fff' }}>
           {modalStation ? (

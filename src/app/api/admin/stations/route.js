@@ -1,183 +1,51 @@
-// filepath: c:\Users\MrPatator\Documents\Développement\Ferrovia-TER\src\app\api\admin\stations\route.js
 import { NextResponse } from 'next/server';
-import pool from '@/lib/db_horaires';
+import * as stationsLib from '@/lib/stations';
 
-function safeParseJsonOrCsv(value) {
-  if (value == null) return [];
-  if (Array.isArray(value)) return value;
-  if (typeof value === 'object') return value;
-  if (typeof value !== 'string') return [];
-
-  const s = value.trim();
-  if (!s) return [];
-
-  // Si ça ressemble à du JSON, essayer JSON.parse
-  if (s.startsWith('{') || s.startsWith('[')) {
-    try {
-      return JSON.parse(s);
-    } catch (e) {
-      // fallback vers CSV
-    }
-  }
-
-  // Fallback: interpréter comme liste séparée par des virgules
+// GET - lister toutes les stations
+export async function GET() {
   try {
-    return s.split(',').map(it => it.trim()).filter(Boolean);
-  } catch (e) {
-    return [];
+    const data = await stationsLib.listStations();
+    return NextResponse.json(data);
+  } catch (err) {
+    console.error('GET /api/admin/stations error:', err);
+    return NextResponse.json({ error: err.message || 'Erreur serveur' }, { status: err.status || 500 });
   }
 }
 
-// GET - Récupérer toutes les gares
-export async function GET(request) {
-  try {
-    const [rows] = await pool.execute('SELECT * FROM stations ORDER BY nom ASC');
-
-    const stations = rows.map(station => ({
-      ...station,
-      service: safeParseJsonOrCsv(station.service),
-      // mapping des quais
-      quais: (() => {
-        try {
-          const parsed = safeParseJsonOrCsv(station.quais);
-          if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') return [];
-          return Array.isArray(parsed) ? parsed : [];
-        } catch (e) { return []; }
-      })(),
-      transports_commun: (() => {
-        try {
-          const parsed = safeParseJsonOrCsv(station.transports_commun);
-          if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
-            return parsed.map(p => ({ type: p }));
-          }
-          return Array.isArray(parsed) ? parsed : [];
-        } catch (e) { return []; }
-      })(),
-      // exposer `code` et `correspondance` correctement
-      code: station.code || null,
-      correspondance: (() => {
-        try {
-          const parsed = safeParseJsonOrCsv(station.correspondance);
-          return parsed;
-        } catch (e) { return []; }
-      })()
-    }));
-
-    return NextResponse.json(stations);
-  } catch (error) {
-    console.error('Erreur lors de la récupération des gares:', error);
-    return NextResponse.json({ error: 'Erreur lors de la récupération des gares' }, { status: 500 });
-  }
-}
-
-// POST - Créer une nouvelle gare
+// POST - créer une nouvelle station (ou plusieurs en batch)
 export async function POST(request) {
   try {
     let body;
-    try {
-      body = await request.json();
-    } catch (err) {
-      // Peut-être que le client a envoyé du form-urlencoded (ex: via <form>)
-      const text = await request.text();
-      try {
-        // essayer d'interpréter comme URLSearchParams
-        const params = new URLSearchParams(text);
-        body = Object.fromEntries(params.entries());
-      } catch (e) {
-        // fallback : corps brut
-        body = { raw: text };
-      }
-    }
+    try { body = await request.json(); } catch (e) { const t = await request.text(); try { body = JSON.parse(t); } catch (e2) { body = {}; } }
 
-    console.log('POST /api/admin/stations body:', body);
+    // Import en batch si un tableau de stations est fourni
+    if (body.stations && Array.isArray(body.stations)) {
+      const results = [];
+      const errors = [];
 
-    let { nom, type_gare, service, quais, transports_commun, code, correspondance } = body;
-
-    // Normaliser `code`: doit être null ou exactement 3 lettres (A-Z)
-    if (typeof code === 'string') {
-      code = code.trim().toUpperCase();
-      if (code === '') code = null;
-      // validation basique: 3 lettres
-      if (code && !/^[A-Z]{3}$/.test(code)) {
-        return NextResponse.json({ error: 'Le champ Code doit être composé de 3 lettres (A-Z)' }, { status: 400 });
-      }
-    } else {
-      code = null;
-    }
-
-    // Normaliser `service` : peut être une chaîne 'TER,TGV' ou un JSON stringifié
-    if (typeof service === 'string') {
-      try { service = JSON.parse(service); } catch (e) {
-        service = service.split(',').map(s => s.trim()).filter(Boolean);
-      }
-    }
-    if (!Array.isArray(service)) service = [];
-
-    // Normaliser `quais` et `transports_commun` si envoyés en string
-    if (typeof quais === 'string') {
-      try { quais = JSON.parse(quais); } catch (e) { quais = []; }
-    }
-    if (!Array.isArray(quais)) quais = [];
-
-    if (typeof transports_commun === 'string') {
-      try { transports_commun = JSON.parse(transports_commun); } catch (e) { transports_commun = []; }
-    }
-    if (!Array.isArray(transports_commun)) transports_commun = [];
-
-    // Normaliser `correspondance`
-    if (typeof correspondance === 'string') {
-      try { correspondance = JSON.parse(correspondance); } catch (e) { correspondance = []; }
-    }
-    if (!Array.isArray(correspondance)) correspondance = [];
-
-    if (!nom || !type_gare) {
-      return NextResponse.json({ error: 'Le nom et le type de gare sont requis' }, { status: 400 });
-    }
-
-    const [result] = await pool.execute(
-      `INSERT INTO stations (nom, type_gare, service, quais, transports_commun, code, correspondance) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        nom,
-        type_gare,
-        JSON.stringify(service),
-        JSON.stringify(quais),
-        JSON.stringify(transports_commun),
-        code,
-        JSON.stringify(correspondance)
-      ]
-    );
-
-    const [newStationRows] = await pool.execute('SELECT * FROM stations WHERE id = ?', [result.insertId]);
-
-    const newStation = newStationRows[0];
-    const station = {
-      ...newStation,
-      service: safeParseJsonOrCsv(newStation.service || '[]'),
-      quais: (() => {
+      for (const station of body.stations) {
         try {
-          const parsed = safeParseJsonOrCsv(newStation.quais || '[]');
-          if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') return [];
-          return Array.isArray(parsed) ? parsed : [];
-        } catch (e) { return []; }
-      })(),
-      transports_commun: (() => {
-        try {
-          const parsed = safeParseJsonOrCsv(newStation.transports_commun || '[]');
-          if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
-            return parsed.map(p => ({ type: p }));
-          }
-          return Array.isArray(parsed) ? parsed : [];
-        } catch (e) { return []; }
-      })(),
-      code: newStation.code || null,
-      correspondance: (() => {
-        try { return safeParseJsonOrCsv(newStation.correspondance || '[]'); } catch (e) { return []; }
-      })()
-    };
+          const created = await stationsLib.createStation(station);
+          results.push(created);
+        } catch (err) {
+          console.error('Error creating station:', station.nom, err);
+          errors.push({ station: station.nom, error: err.message });
+        }
+      }
 
-    return NextResponse.json(station, { status: 201 });
-  } catch (error) {
-    console.error('Erreur lors de la création de la gare:', error);
-    return NextResponse.json({ error: 'Erreur lors de la création de la gare' }, { status: 500 });
+      return NextResponse.json({
+        success: true,
+        imported: results.length,
+        total: body.stations.length,
+        errors: errors.length > 0 ? errors : undefined
+      }, { status: 201 });
+    }
+
+    // Création d'une seule station
+    const created = await stationsLib.createStation(body);
+    return NextResponse.json(created, { status: 201 });
+  } catch (err) {
+    console.error('POST /api/admin/stations error:', err);
+    return NextResponse.json({ error: err.message || 'Erreur serveur' }, { status: err.status || 500 });
   }
 }

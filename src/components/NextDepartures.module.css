@@ -150,6 +150,17 @@
   color: #172b1f;
 }
 
+.platformBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #0b7d48;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
 .platformAction {
   background: #f4f7ec;
   border: 1px solid #dae8c9;

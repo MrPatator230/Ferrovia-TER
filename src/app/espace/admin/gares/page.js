@@ -11,14 +11,10 @@ export default function GaresPage() {
     const modalRef = useRef(null);
 
     function handleCreateClick() {
-        console.log('Bouton Créer cliqué - Ouverture de la modale');
         setEditStation(null);
         setModalKey(prev => prev + 1);
         setTimeout(() => {
-            if (modalRef.current) {
-                modalRef.current.setAttribute('show', '');
-                console.log('Modale ouverte');
-            }
+            try { modalRef.current && modalRef.current.setAttribute('show', ''); } catch (e) {}
         }, 50);
     }
 
@@ -26,17 +22,12 @@ export default function GaresPage() {
         setEditStation(station);
         setModalKey(prev => prev + 1);
         setTimeout(() => {
-            if (modalRef.current) {
-                modalRef.current.setAttribute('show', '');
-                console.log('Modale d\'édition ouverte');
-            }
+            try { modalRef.current && modalRef.current.setAttribute('show', ''); } catch (e) {}
         }, 50);
     }
 
     function handleCloseModal() {
-        if (modalRef.current) {
-            modalRef.current.removeAttribute('show');
-        }
+        try { modalRef.current && modalRef.current.removeAttribute('show'); } catch (e) {}
         setEditStation(null);
     }
 
@@ -63,7 +54,11 @@ export default function GaresPage() {
         <div className={styles.container}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
                 <h1>Gestion des Gares</h1>
-                <div>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <wcs-button mode="stroked" onClick={() => window.location.href = '/espace/admin/gares/imports'}>
+                        <wcs-mat-icon icon="upload_file" size="m" />
+                        Importer depuis Excel
+                    </wcs-button>
                     <wcs-button onClick={handleCreateClick}>
                         <wcs-mat-icon icon="add" size="m" />
                         Créer
@@ -73,31 +68,16 @@ export default function GaresPage() {
 
             <StationList onEdit={handleEdit} refreshTrigger={refreshKey} />
 
-            {/* Modal de création/édition */}
-            <wcs-modal ref={modalRef} show-close-button size="l" onWcsDialogClosed={handleCloseModal}>
-                <div slot="header">
-                    {editStation ? 'Modifier la gare' : 'Créer une nouvelle gare'}
-                </div>
+            {/* Hidden fallback trigger for gares modal */}
+            <button id="gares-modal-trigger-fallback" style={{ display: 'none' }} aria-hidden="true" />
 
-                {/* Contenu principal (slot par défaut) */}
-                <div style={{
-                    minHeight: '400px',
-                    maxHeight: '70vh',
-                    overflow: 'auto',
-                    backgroundColor: 'white',
-                    display: 'block',
-                    padding: 12
-                }}>
-                    {/* DEBUG: élément statique pour vérifier que React rend bien à l'intérieur du modal */}
-                    <div id="gares-modal-debug" style={{padding: 12, background: '#fff3cd', border: '1px solid #ffeeba', marginBottom: 12}}>
+            <wcs-modal ref={modalRef} modal-trigger-controls-id="gares-modal-trigger-fallback" show-close-button size="l" onWcsDialogClosed={handleCloseModal}>
+                <div slot="header">{editStation ? 'Modifier la gare' : 'Créer une nouvelle gare'}</div>
+                <div style={{ minHeight: '400px', maxHeight: '70vh', overflow: 'auto', backgroundColor: 'white', display: 'block', padding: 12 }}>
+                    <div id="gares-modal-debug" style={{ padding: 12, background: '#fff3cd', border: '1px solid #ffeeba', marginBottom: 12 }}>
                         RENDER-TEST : React rend du contenu dans la modale
                     </div>
-                    <StationForm
-                        key={modalKey}
-                        editStation={editStation}
-                        onClose={handleCloseModal}
-                        onSuccess={handleSuccess}
-                    />
+                    <StationForm key={modalKey} editStation={editStation} onClose={handleCloseModal} onSuccess={handleSuccess} />
                 </div>
             </wcs-modal>
         </div>

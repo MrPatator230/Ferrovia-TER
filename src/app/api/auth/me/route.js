@@ -1,13 +1,47 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
+function parseCookieHeaderForToken(cookieHeader, name = 'session_token') {
+  if (!cookieHeader) return null;
+  const parts = cookieHeader.split(';').map(p => p.trim());
+  for (const p of parts) {
+    if (p.startsWith(name + '=')) return p.substring(name.length + 1);
+  }
+  return null;
+}
+
 export async function GET(request) {
   try {
     // Debug: afficher si le header Cookie est présent
-    const cookieHeader = request.headers.get('cookie');
-    console.debug('[API /api/auth/me] cookie header:', !!cookieHeader);
+    const cookieHeader = request.headers.get('cookie') || '';
+    console.debug('[API /api/auth/me] cookie header present:', !!cookieHeader);
 
-    const sessionToken = request.cookies.get('session_token')?.value;
+    // Première tentative: NextRequest.cookies (parsed)
+    let sessionToken = request.cookies.get('session_token')?.value;
+
+    // Fallback: raw Cookie header parsing (some callers may forward the header but NextRequest.cookies may be empty)
+    if (!sessionToken && cookieHeader) {
+      sessionToken = parseCookieHeaderForToken(cookieHeader, 'session_token');
+      if (sessionToken) console.debug('[API /api/auth/me] session_token extracted from raw Cookie header');
+    }
+
+    // Fallback: Authorization Bearer header
+    if (!sessionToken) {
+      const authHeader = request.headers.get('authorization') || request.headers.get('Authorization');
+      if (authHeader && authHeader.toLowerCase().startsWith('bearer ')) {
+        sessionToken = authHeader.split(' ')[1];
+        console.debug('[API /api/auth/me] session_token extracted from Authorization header');
+      }
+    }
+
+    // Fallback: custom header
+    if (!sessionToken) {
+      const alt = request.headers.get('x-session-token') || request.headers.get('x-session');
+      if (alt) {
+        sessionToken = alt;
+        console.debug('[API /api/auth/me] session_token extracted from x-session-token header');
+      }
+    }
 
     if (!sessionToken) {
       console.debug('[API /api/auth/me] session_token absent');

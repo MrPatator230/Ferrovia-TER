@@ -17,9 +17,13 @@ function safeParseJSON(input, fallback) {
 }
 
 function parseStopsInput(raw) {
+  // Accept either [{ station_id, depart_time, arrivee_time }] OR [{ station_code, depart_time, arrivee_time }]
   if (!Array.isArray(raw)) return [];
   return raw.map((s) => ({
+    // prefer numeric station_id when provided
     station_id: s && s.station_id != null && !Number.isNaN(Number(s.station_id)) ? parseInt(s.station_id, 10) : null,
+    // accept station_code sent by the client (keep as-is, will be used if present)
+    station_code: s && s.station_code ? String(s.station_code).trim().toUpperCase() : null,
     depart_time: normalizeTime(s && s.depart_time ? s.depart_time : null),
     arrivee_time: normalizeTime(s && s.arrivee_time ? s.arrivee_time : null),
   }));
@@ -77,6 +81,7 @@ export async function POST(request) {
     if (!arrivee_time) missing.arrivee_time = 'missing_or_invalid_time_format';
 
     if (Object.keys(missing).length > 0) {
+      console.warn('POST /api/admin/horaires/create validation failed', { body, missing, stopsArr });
       return NextResponse.json({ error: 'Champs requis manquants ou invalides', missing }, { status: 400 });
     }
 
@@ -94,14 +99,16 @@ export async function POST(request) {
       return map;
     }
 
-    const allIdsToLookup = [depart_station_id, arrivee_station_id, ...stopsArr.map(s => s.station_id)];
+    // Lookup only numeric ids from stops (some stops may already come with station_code from client)
+    const allIdsToLookup = [depart_station_id, arrivee_station_id, ...stopsArr.map(s => s.station_id)].filter(Boolean);
     const idToCode = await fetchStationCodesByIds(allIdsToLookup);
 
     const depart_station_code = depart_station_id ? (idToCode[String(depart_station_id)] || null) : null;
     const arrivee_station_code = arrivee_station_id ? (idToCode[String(arrivee_station_id)] || null) : null;
 
+    // Build stopsWithCodes: if client provided station_code, use it; otherwise resolve via station_id -> code
     const stopsWithCodes = stopsArr.map(s => ({
-      station_code: s.station_id ? (idToCode[String(s.station_id)] || null) : null,
+      station_code: s.station_code ? String(s.station_code).toUpperCase() : (s.station_id ? (idToCode[String(s.station_id)] || null) : null),
       depart_time: s.depart_time,
       arrivee_time: s.arrivee_time
     }));
@@ -111,6 +118,7 @@ export async function POST(request) {
     if (!arrivee_station_code) missing.arrivee_station_code = 'missing_or_invalid_code';
     stopsWithCodes.forEach((s, idx) => { if (!s.station_code) missing[`stops[${idx}].station_code`] = 'missing_or_invalid_code'; });
     if (Object.keys(missing).length > 0) {
+      console.warn('POST /api/admin/horaires/create station code resolution failed', { body, missing, stopsArr, idToCode, stopsWithCodes });
       return NextResponse.json({ error: 'Échec résolution codes gares', missing }, { status: 400 });
     }
 
@@ -155,4 +163,3 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Erreur serveur', details: err.message }, { status: 500 });
   }
 }
-

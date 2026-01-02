@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="120" viewBox="0 0 1200 120">
+  <rect width="1200" height="120" rx="12" fill="#ffffff" />
+  <!-- simple stylized TER train mock -->
+  <g transform="translate(8,8) scale(1)">
+    <rect x="0" y="10" width="1184" height="88" rx="8" fill="#f6fbff" stroke="#cfe04a" stroke-width="4" />
+    <!-- windows -->
+    <g fill="#ffffff">
+      <rect x="40" y="24" width="90" height="40" rx="6" fill="#e9f7ff" />
+      <rect x="140" y="24" width="90" height="40" rx="6" fill="#e9f7ff" />
+      <rect x="240" y="24" width="90" height="40" rx="6" fill="#e9f7ff" />
+      <rect x="340" y="24" width="90" height="40" rx="6" fill="#e9f7ff" />
+      <rect x="440" y="24" width="90" height="40" rx="6" fill="#e9f7ff" />
+      <rect x="640" y="24" width="90" height="40" rx="6" fill="#e9f7ff" />
+      <rect x="740" y="24" width="90" height="40" rx="6" fill="#e9f7ff" />
+      <rect x="840" y="24" width="90" height="40" rx="6" fill="#e9f7ff" />
+    </g>
+    <!-- doors -->
+    <rect x="540" y="18" width="48" height="56" rx="6" fill="#bcd84a" />
+    <rect x="920" y="18" width="48" height="56" rx="6" fill="#bcd84a" />
+    <!-- logos -->
+    <circle cx="1150" cy="28" r="12" fill="#d33" />
+    <text x="44" y="98" fill="#2b4d2a" font-size="18" font-family="Arial, Helvetica, sans-serif">Mock TER Train</text>
+  </g>
+</svg>
+
